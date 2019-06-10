@@ -1148,15 +1148,15 @@ isUniversallyConstant f old =
   where
     falseOr x = x `catch` \(e :: SomeException) -> return False
 
-ifDifferent :: (s -> s) -> s -> Maybe s
-ifDifferent f s0 = unsafePerformIO $ do
+ifDifferent :: (s -> IO s) -> s -> IO (Maybe s)
+ifDifferent f s0 = do
     oldName <- makeStableName $! s0
+    s1 <- f s0
     newName <- makeStableName $! s1
     if newName == oldName then return Nothing else return (Just s1)
-  where s1 = f s0
 
-modifyMVarIfDifferent :: MVar s -> (s -> s) -> IO Bool
-modifyMVarIfDifferent var f =
+modifyMVarIfDifferent :: MVar s -> (s -> IO s) -> IO Bool
+modifyMVarIfDifferent var f = do
     modifyMVar var $ \s0 -> do
         case ifDifferent f s0 of
             Nothing -> return (s0, False)
@@ -1526,11 +1526,11 @@ propagateErrors tid action = action `catch` \ (e :: SomeException) -> throwTo ti
 run :: s
     -> (Double -> s -> IO s)
     -> (e -> s -> IO s)
-    -> (s -> Drawing CanvasM)
+    -> (s -> IO (Drawing CanvasM))
     -> (Double -> e)
     -> IO (e -> IO (), IO s)
 run initial stepHandler eventHandler drawHandler injectTime = do
-    let fullStepHandler dt = stepHandler dt . eventHandler (injectTime dt)
+    let fullStepHandler dt = stepHandler dt <=< eventHandler (injectTime dt)
     showCanvas
     Just window <- currentWindow
     Just doc <- currentDocument
@@ -1547,7 +1547,7 @@ run initial stepHandler eventHandler drawHandler injectTime = do
     eventHappened <- newMVar ()
     screen <- getCodeWorldContext (canvasFromElement canvas)
     let go t0 lastFrame lastStateName needsTime = do
-            pic <- drawHandler <$> readMVar currentState
+            pic <- drawHandler =<< readMVar currentState
             picFrame <- makeStableName $! pic
             when (picFrame /= lastFrame) $ do
                 rect <- getBoundingClientRect canvas
