@@ -6,13 +6,8 @@ import Graphics.Gloss.Data.Picture
 import Graphics.Gloss.Data.Color
 
 import qualified CodeWorld as CW
-import qualified CodeWorld.Picture as CW
-import qualified CodeWorld.Driver as CW
-
-getDisplay :: IO Display
-getDisplay = do
-    (x,y) <- CW.getSizeOf "screen"
-    return $ Display (round x) (round y)
+--import qualified CodeWorld.Picture as CW
+--import qualified CodeWorld.Driver as CW
 
 data Display = Display Int Int
 

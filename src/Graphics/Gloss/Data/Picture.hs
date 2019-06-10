@@ -3,7 +3,7 @@
 module Graphics.Gloss.Data.Picture where
 
 import qualified CodeWorld as CW
-import qualified CodeWorld.Picture as CW
+--import qualified CodeWorld.Picture as CW
 
 import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Data.Point
@@ -27,7 +27,6 @@ data Picture
     | Rotate Float Picture	
     | Scale Float Float Picture	
     | Pictures [Picture]	
-    | Image Int Int CW.Img
   deriving (Eq,Show)
 
 instance Semigroup Picture where
@@ -86,41 +85,26 @@ pictureToCW (ThickCircle t r) = CW.thickCircle (coordToCW t) (coordToCW r)
 pictureToCW (Arc b e r) = CW.arc (angleToCW b) (angleToCW e) (coordToCW r)
 pictureToCW (ThickArc t b e r) = CW.thickArc (coordToCW t) (angleToCW b) (angleToCW e) (coordToCW r)
 pictureToCW (Text str) = CW.text $ Text.pack str
-pictureToCW (Color c p) = CW.propagateColor (colorToCW c) (pictureToCW p)
+pictureToCW (Color c p) = propagateColor (colorToCW c) p
 pictureToCW (Translate x y p) = CW.translated (coordToCW x) (coordToCW y) (pictureToCW p)
 pictureToCW (Rotate r p) = CW.rotated (angleToCW r) (pictureToCW p)
 pictureToCW (Scale x y p) = CW.scaled (coordToCW x) (coordToCW y) (pictureToCW p)
 pictureToCW (Pictures ps) = CW.pictures $ reverse $ map pictureToCW ps
-pictureToCW (Image w h img) = CW.image w h img
 
-loadImage :: FilePath -> IO Picture
-loadImage f = do
-    CW.Image _ w h img <- CW.loadImage f
-    return $ Image w h img
-
-loadImageById :: String -> IO Picture
-loadImageById n = do
-    CW.Image _ w h img <- CW.loadImageById n
-    return $ Image w h img
-    
-loadSizedImageById :: Int -> Int -> String -> IO Picture
-loadSizedImageById w h n = do
-    CW.Image _ w h img <- CW.loadSizedImageById w h n
-    return $ Image w h img
-
---makeImage :: String -> Picture
---makeImage n = Image (CW.StringImg n)
-
-
---loadImage :: Float -> Float -> FilePath -> IO Picture
---loadImage w h p = do
---    CW.Image cs w h n <- CW.loadImage (coordToCW w) (coordToCW h) p
---    return $! Image (realToFrac w) (realToFrac h) n
---
---loadImage' :: FilePath -> IO Picture
---loadImage' p = do
---    CW.Image cs w h n <- CW.loadImage' p
---    return $! Image (realToFrac w) (realToFrac h) n
+propagateColor :: CW.Color -> Picture -> CW.Picture
+propagateColor c pic@(Blank {}) = CW.colored c (pictureToCW pic)
+propagateColor c pic@(Polygon {}) = CW.colored c (pictureToCW pic)
+propagateColor c pic@(Line {}) = CW.colored c (pictureToCW pic)
+propagateColor c pic@(Circle {}) = CW.colored c (pictureToCW pic)
+propagateColor c pic@(ThickCircle {}) = CW.colored c (pictureToCW pic)
+propagateColor c pic@(Arc {}) = CW.colored c (pictureToCW pic)
+propagateColor c pic@(ThickArc {}) = CW.colored c (pictureToCW pic)
+propagateColor c pic@(Text {}) = CW.colored c (pictureToCW pic)
+propagateColor c pic@(Color _ p) = pictureToCW pic
+propagateColor c pic@(Translate x y p) = CW.translated (coordToCW x) (coordToCW y) $ propagateColor c p
+propagateColor c pic@(Rotate r p) = CW.rotated (angleToCW r) $ propagateColor c p
+propagateColor c pic@(Scale x y p) = CW.scaled (coordToCW x) (coordToCW y) $ propagateColor c p
+propagateColor c pic@(Pictures ps) = CW.pictures $ map (propagateColor c) ps
 
 -- Other Shapes ---------------------------------------------------------------
 -- | A closed loop along a path.

@@ -1,8 +1,8 @@
-{-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE OverloadedStrings        #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {-
-  Copyright 2017 The CodeWorld Authors. All rights reserved.
+  Copyright 2019 The CodeWorld Authors. All rights reserved.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -16,194 +16,293 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -}
-
 module CodeWorld.Picture where
 
 import CodeWorld.Color
-import Data.Semigroup
+import Control.DeepSeq
+import Data.List
 import Data.Monoid ((<>))
 import Data.Text (Text, pack)
+import GHC.Generics (Generic)
 import GHC.Stack
-import GHCJS.DOM.HTMLImageElement
 
 type Point = (Double, Double)
+
+translatedPoint :: Double -> Double -> Point -> Point
+translatedPoint tx ty (x, y) = (x + tx, y + ty)
+
+rotatedPoint :: Double -> Point -> Point
+rotatedPoint = rotatedVector
+
+scaledPoint :: Double -> Double -> Point -> Point
+scaledPoint kx ky (x, y) = (kx * x, ky * y)
+
+dilatedPoint :: Double -> Point -> Point
+dilatedPoint k (x, y) = (k * x, k * y)
+
 type Vector = (Double, Double)
 
 vectorLength :: Vector -> Double
-vectorLength (x,y) = sqrt (x^2 + y^2)
+vectorLength (x, y) = sqrt (x ^ 2 + y ^ 2)
 
 vectorDirection :: Vector -> Double
-vectorDirection (x,y) = atan2 y x
+vectorDirection (x, y) = atan2 y x
 
 vectorSum :: Vector -> Vector -> Vector
-vectorSum (x1,y1) (x2,y2) = (x1 + x2, y1 + y2)
+vectorSum (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
 vectorDifference :: Vector -> Vector -> Vector
-vectorDifference (x1,y1) (x2,y2) = (x1 - x2, y1 - y2)
+vectorDifference (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
 
 scaledVector :: Double -> Vector -> Vector
-scaledVector k (x,y) = (k*x, k*y)
+scaledVector k (x, y) = (k * x, k * y)
 
 {-| Angle is in radians -}
 rotatedVector :: Double -> Vector -> Vector
-rotatedVector angle (x,y) = (x * cos angle - y * sin angle,
-                             x * sin angle + y * cos angle)
+rotatedVector angle (x, y) =
+    (x * cos angle - y * sin angle, x * sin angle + y * cos angle)
 
 dotProduct :: Vector -> Vector -> Double
 dotProduct (x1, y1) (x2, y2) = x1 * x2 + y1 * y2
 
-data Picture = Polygon CallStack [Point] !Bool
-             | Path CallStack [Point] !Double !Bool !Bool
-             | Sector CallStack !Double !Double !Double
-             | Arc CallStack !Double !Double !Double !Double
-             | Text CallStack !TextStyle !Font !Text
-             | Color CallStack !Color !Picture
-             | Translate CallStack !Double !Double !Picture
-             | Scale CallStack !Double !Double !Picture
-             | Rotate CallStack !Double !Picture
-             | Pictures CallStack [Picture]
-             | Image CallStack Int Int Img -- width, height and the identifier of the html element holding the image
+data Picture
+    = SolidPolygon (Maybe SrcLoc)
+              [Point]
+    | SolidClosedCurve (Maybe SrcLoc)
+              [Point]
+    | Polygon (Maybe SrcLoc)
+           [Point]
+    | ThickPolygon (Maybe SrcLoc)
+           [Point]
+           !Double
+    | Rectangle (Maybe SrcLoc)
+           !Double
+           !Double
+    | SolidRectangle (Maybe SrcLoc)
+           !Double
+           !Double
+    | ThickRectangle (Maybe SrcLoc)
+           !Double
+           !Double
+           !Double
+    | ClosedCurve (Maybe SrcLoc)
+           [Point]
+    | ThickClosedCurve (Maybe SrcLoc)
+           [Point]
+           !Double
+    | Polyline (Maybe SrcLoc)
+           [Point]
+    | ThickPolyline (Maybe SrcLoc)
+           [Point]
+           !Double
+    | Curve (Maybe SrcLoc)
+           [Point]
+    | ThickCurve (Maybe SrcLoc)
+           [Point]
+           !Double
+    | Circle (Maybe SrcLoc)
+           !Double
+    | SolidCircle (Maybe SrcLoc)
+           !Double
+    | ThickCircle (Maybe SrcLoc)
+           !Double
+           !Double
+    | Sector (Maybe SrcLoc)
+             !Double
+             !Double
+             !Double
+    | Arc (Maybe SrcLoc)
+          !Double
+          !Double
+          !Double
+    | ThickArc (Maybe SrcLoc)
+          !Double
+          !Double
+          !Double
+          !Double
+    | StyledLettering (Maybe SrcLoc)
+           !TextStyle
+           !Font
+           !Text
+    | Lettering (Maybe SrcLoc)
+           !Text
+    | Color (Maybe SrcLoc)
+            !Color
+            !Picture
+    | Translate (Maybe SrcLoc)
+                !Double
+                !Double
+                !Picture
+    | Scale (Maybe SrcLoc)
+            !Double
+            !Double
+            !Picture
+    | Dilate (Maybe SrcLoc)
+             !Double
+             !Picture
+    | Rotate (Maybe SrcLoc)
+             !Double
+             !Picture
+    | CoordinatePlane (Maybe SrcLoc)
+    | Logo (Maybe SrcLoc)
+    | Pictures (Maybe SrcLoc) [Picture]
+    | PictureAnd (Maybe SrcLoc) [Picture]
+    | Blank (Maybe SrcLoc)
+    deriving (Generic)
 
-propagateColor :: Color -> Picture -> Picture
-propagateColor c pic@(Polygon {}) = colored c pic
-propagateColor c pic@(Path {}) = colored c pic
-propagateColor c pic@(Sector {}) = colored c pic
-propagateColor c pic@(Arc {}) = colored c pic
-propagateColor c pic@(Text {}) = colored c pic
-propagateColor c pic@(Color cs _ p) = pic
-propagateColor c pic@(Translate cs x y p) = Translate cs x y $ propagateColor c p
-propagateColor c pic@(Scale cs x y p) = Scale cs x y $ propagateColor c p
-propagateColor c pic@(Rotate cs r p) = Rotate cs r $ propagateColor c p
-propagateColor c pic@(Pictures cs ps) = Pictures cs $ map (propagateColor c) ps
-propagateColor c pic@(Image {}) = colored c pic
+instance NFData Picture
 
-data Img = StringImg String
-         | HTMLImg HTMLImageElement
-  deriving Eq
+data TextStyle
+    = Plain
+    | Bold
+    | Italic
+    deriving (Generic, Show)
 
-instance Show Img where
-    show x = "<Img>"
+instance NFData TextStyle
 
-pictureImages :: Picture -> [Img]
-pictureImages (Color _ c p) = pictureImages p
-pictureImages (Translate _ _ _ p) = pictureImages p
-pictureImages (Scale _ _ _ p) = pictureImages p
-pictureImages (Rotate _ _ p) = pictureImages p
-pictureImages (Pictures _ ps) = concatMap pictureImages ps
-pictureImages (Image _ _ _ n) = [n]
-pictureImages _ = []
+data Font
+    = SansSerif
+    | Serif
+    | Monospace
+    | Handwriting
+    | Fancy
+    | NamedFont !Text
+    deriving (Generic, Show)
 
-data TextStyle = Plain | Bold | Italic
-  deriving Show
-
-data Font = SansSerif | Serif | Monospace | Handwriting | Fancy | NamedFont !Text
-  deriving Show
+instance NFData Font
 
 -- | A blank picture
 blank :: HasCallStack => Picture
-blank = Pictures callStack []
+blank = Blank (getDebugSrcLoc callStack)
+
+-- | A thin sequence of line segments, with these points as endpoints
+polyline :: HasCallStack => [Point] -> Picture
+polyline ps = Polyline (getDebugSrcLoc callStack) ps
 
 -- | A thin sequence of line segments, with these points as endpoints
 path :: HasCallStack => [Point] -> Picture
-path ps = Path callStack ps 0 False False
+path ps = Polyline (getDebugSrcLoc callStack) ps
+
+{-# WARNING path ["Please use polyline instead of path.",
+                  "path may be removed July 2019."] #-}
+
+-- | A thick sequence of line segments, with given line width and endpoints
+thickPolyline :: HasCallStack => Double -> [Point] -> Picture
+thickPolyline n ps = ThickPolyline (getDebugSrcLoc callStack) ps n
 
 -- | A thick sequence of line segments, with given line width and endpoints
 thickPath :: HasCallStack => Double -> [Point] -> Picture
-thickPath n ps = Path callStack ps n False False
+thickPath n ps = ThickPolyline (getDebugSrcLoc callStack) ps n
+
+{-# WARNING thickPath ["Please used thickPolyline instead of thickPath.",
+                       "thickPath may be removed July 2019."] #-}
 
 -- | A thin polygon with these points as vertices
 polygon :: HasCallStack => [Point] -> Picture
-polygon ps = Path callStack ps 0 True False
+polygon ps = Polygon (getDebugSrcLoc callStack) ps
 
 -- | A thick polygon with this line width and these points as
 -- vertices
 thickPolygon :: HasCallStack => Double -> [Point] -> Picture
-thickPolygon n ps = Path callStack ps n True False
+thickPolygon n ps = ThickPolygon (getDebugSrcLoc callStack) ps n
 
 -- | A solid polygon with these points as vertices
 solidPolygon :: HasCallStack => [Point] -> Picture
-solidPolygon ps = Polygon callStack ps False
+solidPolygon ps = SolidPolygon (getDebugSrcLoc callStack) ps
 
 -- | A smooth curve passing through these points.
 curve :: HasCallStack => [Point] -> Picture
-curve ps = Path callStack ps 0 False True
+curve ps = Curve (getDebugSrcLoc callStack) ps
 
 -- | A thick smooth curve with this line width, passing through these points.
 thickCurve :: HasCallStack => Double -> [Point] -> Picture
-thickCurve n ps = Path callStack ps n False True
+thickCurve n ps = ThickCurve (getDebugSrcLoc callStack) ps n
 
--- | A smooth closed loop passing through these points.
-loop :: HasCallStack => [Point] -> Picture
-loop ps = Path callStack ps 0 True True
+-- | A smooth closed curve passing through these points.
+closedCurve :: HasCallStack => [Point] -> Picture
+closedCurve ps = ClosedCurve (getDebugSrcLoc callStack) ps
 
--- | A thick smooth closed loop with this line width, passing through these points.
-thickLoop :: HasCallStack => Double -> [Point] -> Picture
-thickLoop n ps = Path callStack ps n True True
+-- | A thick smooth closed curve with this line width, passing through these points.
+thickClosedCurve :: HasCallStack => Double -> [Point] -> Picture
+thickClosedCurve n ps = ThickClosedCurve (getDebugSrcLoc callStack) ps n
 
--- | A solid smooth closed loop passing through these points.
-solidLoop :: HasCallStack => [Point] -> Picture
-solidLoop ps = Polygon callStack ps True
+-- | A solid smooth closed curve passing through these points.
+solidClosedCurve :: HasCallStack => [Point] -> Picture
+solidClosedCurve ps = SolidClosedCurve (getDebugSrcLoc callStack) ps
+
+rectangleVertices :: Double -> Double -> [Point]
+rectangleVertices w h = [ (w / 2, h / 2), (w / 2, -h / 2), (-w / 2, -h / 2), (-w / 2, h / 2) ]
 
 -- | A thin rectangle, with this width and height
 rectangle :: HasCallStack => Double -> Double -> Picture
-rectangle w h = polygon [
-    (-w/2, -h/2), (w/2, -h/2), (w/2, h/2), (-w/2, h/2)
-    ]
+rectangle w h = Rectangle (getDebugSrcLoc callStack) w h
 
 -- | A solid rectangle, with this width and height
 solidRectangle :: HasCallStack => Double -> Double -> Picture
-solidRectangle w h = solidPolygon [
-    (-w/2, -h/2), (w/2, -h/2), (w/2, h/2), (-w/2, h/2)
-    ]
+solidRectangle w h = SolidRectangle (getDebugSrcLoc callStack) w h
 
 -- | A thick rectangle, with this line width, and width and height
 thickRectangle :: HasCallStack => Double -> Double -> Double -> Picture
-thickRectangle lw w h = thickPolygon lw [
-    (-w/2, -h/2), (w/2, -h/2), (w/2, h/2), (-w/2, h/2)
-    ]
+thickRectangle lw w h = ThickRectangle (getDebugSrcLoc callStack) lw w h
 
 -- | A thin circle, with this radius
 circle :: HasCallStack => Double -> Picture
-circle = arc 0 (2*pi)
+circle = Circle (getDebugSrcLoc callStack) 
 
 -- | A thick circle, with this line width and radius
 thickCircle :: HasCallStack => Double -> Double -> Picture
-thickCircle w = thickArc w 0 (2*pi)
+thickCircle = ThickCircle (getDebugSrcLoc callStack)
 
 -- | A thin arc, starting and ending at these angles, with this radius
 --
 -- Angles are in radians.
 arc :: HasCallStack => Double -> Double -> Double -> Picture
-arc b e r = Arc callStack b e r 0
+arc b e r = Arc (getDebugSrcLoc callStack) b e r
 
 -- | A thick arc with this line width, starting and ending at these angles,
 -- with this radius.
 --
 -- Angles are in radians.
 thickArc :: HasCallStack => Double -> Double -> Double -> Double -> Picture
-thickArc w b e r = Arc callStack b e r w
+thickArc w b e r = ThickArc (getDebugSrcLoc callStack) b e r w
 
 -- | A solid circle, with this radius
 solidCircle :: HasCallStack => Double -> Picture
-solidCircle = sector 0 (2*pi)
+solidCircle = SolidCircle (getDebugSrcLoc callStack) 
 
 -- | A solid sector of a circle (i.e., a pie slice) starting and ending at these
 -- angles, with this radius
 --
 -- Angles are in radians.
 sector :: HasCallStack => Double -> Double -> Double -> Picture
-sector = Sector callStack
+sector = Sector (getDebugSrcLoc callStack)
 
--- | A piece of text
+-- | A rendering of text characters.
 text :: HasCallStack => Text -> Picture
-text = Text callStack Plain Monospace
+text = Lettering (getDebugSrcLoc callStack)
 
+{-# WARNING text ["Please used lettering instead of text.",
+                  "text may be removed July 2019."] #-}
+
+-- | A rendering of text characters.
+lettering :: HasCallStack => Text -> Picture
+lettering = Lettering (getDebugSrcLoc callStack)
+
+-- | A rendering of text characters, with a specific choice of font and style.
 styledText :: HasCallStack => TextStyle -> Font -> Text -> Picture
-styledText = Text callStack
+styledText = StyledLettering (getDebugSrcLoc callStack)
+
+{-# WARNING styledText ["Please used styledLettering instead of styledText.",
+                        "styledText may be removed July 2019."] #-}
+
+-- | A rendering of text characters onto a Picture, with a specific
+-- choice of font and style.
+styledLettering :: HasCallStack => TextStyle -> Font -> Text -> Picture
+styledLettering = StyledLettering (getDebugSrcLoc callStack)
 
 -- | A picture drawn entirely in this color.
 colored :: HasCallStack => Color -> Picture -> Picture
-colored = Color callStack
+colored = Color (getDebugSrcLoc callStack)
 
 -- | A picture drawn entirely in this colour.
 coloured :: HasCallStack => Color -> Picture -> Picture
@@ -211,66 +310,72 @@ coloured = colored
 
 -- | A picture drawn translated in these directions.
 translated :: HasCallStack => Double -> Double -> Picture -> Picture
-translated = Translate callStack
+translated = Translate (getDebugSrcLoc callStack)
 
--- | A picture scaled by these factors.
+-- | A picture scaled by these factors in the x and y directions.
 scaled :: HasCallStack => Double -> Double -> Picture -> Picture
-scaled = Scale callStack
+scaled = Scale (getDebugSrcLoc callStack)
 
--- | An external image
-image :: HasCallStack => Int -> Int -> Img -> Picture
-image = Image callStack
-
--- | A picture scaled by these factors.
+-- | A picture scaled uniformly in all directions by this scale factor.
 dilated :: HasCallStack => Double -> Picture -> Picture
-dilated k = scaled k k
+dilated = Dilate (getDebugSrcLoc callStack)
 
 -- | A picture rotated by this angle.
 --
 -- Angles are in radians.
 rotated :: HasCallStack => Double -> Picture -> Picture
-rotated = Rotate callStack
+rotated = Rotate (getDebugSrcLoc callStack)
 
 -- A picture made by drawing these pictures, ordered from top to bottom.
 pictures :: HasCallStack => [Picture] -> Picture
-pictures = Pictures callStack
-
-instance Semigroup Picture where
-    (<>) = mappend
-
-instance Monoid Picture where
-  mempty                   = blank
-  mappend a (Pictures _ bs)  = Pictures callStack (a:bs)
-  mappend a b              = Pictures callStack [a, b]
-  mconcat                  = pictures
+pictures = Pictures (getDebugSrcLoc callStack)
 
 -- | Binary composition of pictures.
-(&) :: Picture -> Picture -> Picture
+(&) :: HasCallStack => Picture -> Picture -> Picture
 infixr 0 &
-(&) = mappend
+
+a & b@(PictureAnd loc2 bs)
+  | srcContains loc1 loc2 = PictureAnd loc1 (a:bs)
+  where loc1 = getDebugSrcLoc callStack
+a & b = PictureAnd (getDebugSrcLoc callStack) [a, b]
+
+instance Monoid Picture where
+    mempty = blank
+    mappend = (&)
+    mconcat = pictures
+
+#if MIN_VERSION_base(4,11,0)
+
+instance Semigroup Picture where
+    (<>) = (&)
+
+#endif
 
 -- | A coordinate plane.  Adding this to your pictures can help you measure distances
 -- more accurately.
 --
 -- Example:
 --
---    main = pictureOf (myPicture <> coordinatePlane)
+--    main = drawingOf (myPicture <> coordinatePlane)
 --    myPicture = ...
-coordinatePlane :: Picture
-coordinatePlane = axes <> numbers <> guidelines
-  where xline y     = thickPath 0.01 [(-10, y), (10, y)]
-        xaxis       = thickPath 0.03 [(-10, 0), (10, 0)]
-        axes        = xaxis <> rotated (pi/2) xaxis
-        xguidelines = pictures [ xline k | k <- [-10, -9 .. 10] ]
-        guidelines  = xguidelines <> rotated (pi/2) xguidelines
-        numbers = xnumbers <> ynumbers
-        xnumbers = pictures
-            [ translated (fromIntegral k) 0.3 (scaled 0.5 0.5 (text (pack (show k))))
-              | k <- [-9, -8 .. 9], k /= 0 ]
-        ynumbers = pictures
-            [ translated 0.3 (fromIntegral k) (scaled 0.5 0.5 (text (pack (show k))))
-              | k <- [-9, -8 .. 9], k /= 0 ]
+coordinatePlane :: HasCallStack => Picture
+coordinatePlane = CoordinatePlane (getDebugSrcLoc callStack)
 
 -- | The CodeWorld logo.
---codeWorldLogo :: HasCallStack => Picture
---codeWorldLogo = Logo callStack
+codeWorldLogo :: HasCallStack => Picture
+codeWorldLogo = Logo (getDebugSrcLoc callStack)
+
+getDebugSrcLoc :: CallStack -> Maybe SrcLoc
+getDebugSrcLoc cs = Data.List.find ((== "main") . srcLocPackage) locs
+  where
+    locs = map snd (getCallStack cs)
+
+srcContains :: Maybe SrcLoc -> Maybe SrcLoc -> Bool
+srcContains Nothing _ = False
+srcContains _ Nothing = True
+srcContains (Just a) (Just b) =
+    srcLocFile a == srcLocFile b && srcLocStartLine a < srcLocStartLine b ||
+    (srcLocStartLine a == srcLocStartLine b &&
+     srcLocStartCol a <= srcLocStartCol b) &&
+    srcLocEndLine a > srcLocEndLine b ||
+    (srcLocEndLine a == srcLocEndLine b && srcLocEndCol a >= srcLocEndCol b)

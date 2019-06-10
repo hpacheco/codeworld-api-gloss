@@ -24,7 +24,7 @@ animateIO
                                   --      It is passed the time in seconds since the program started.
         -> IO ()
 
-animateIO screen back go = CW.animationOf (liftM (displayCWPicture screen back) . go . realToFrac)
+animateIO screen back go = CW.ioAnimationOf (liftM (displayCWPicture screen back) . go . realToFrac)
 
 animateFitScreenIO :: Display -> Display -> Color -> (Float -> IO Picture) -> IO ()
-animateFitScreenIO screen display back go = CW.animationOf (liftM (displayCWPicture screen back . fitScreenPicture screen display) . go . realToFrac)
+animateFitScreenIO screen display back go = CW.ioAnimationOf (liftM (displayCWPicture screen back . fitScreenPicture screen display) . go . realToFrac)

@@ -31,7 +31,7 @@ simulateIO :: forall model
                                  --     step (in seconds).
         -> IO ()
 
-simulateIO display back framerate state draw go = CW.simulationOf state (realToFrac framerate) goCW drawCW
+simulateIO display back framerate state draw go = CW.ioSimulationOf state goCW drawCW
     where
     goCW t w = go (realToFrac t) w
     drawCW = liftM (displayCWPicture display back) . draw

@@ -10,20 +10,20 @@ import Graphics.Gloss.Data.Display
 import Graphics.Gloss.Data.Event
 
 play :: Display -> Color -> Int -> world -> (world -> Picture) -> (Event -> world -> world) -> (Float -> world -> world) -> IO ()
-play display back framerate start draw react step = CW.interactionOf start (realToFrac framerate) stepCW reactCW drawCW
+play display back framerate start draw react step = CW.interactionOf start stepCW reactCW drawCW
     where
-    stepCW f w = return $ step (realToFrac f) w
-    reactCW e w = return $ react (eventFromCW display e) w
-    drawCW w = return $ displayCWPicture display back (draw w)
+    stepCW f w = step (realToFrac f) w
+    reactCW e w = react (eventFromCW display e) w
+    drawCW w = displayCWPicture display back (draw w)
 
 playFitScreen :: Display -> Display -> Color -> Int -> world -> (world -> Picture) -> (Event -> world -> world) -> (Float -> world -> world) -> IO ()
-playFitScreen screen display back framerate start draw react step = CW.interactionOf start (realToFrac framerate) stepCW reactCW drawCW
+playFitScreen screen display back framerate start draw react step = CW.interactionOf start stepCW reactCW drawCW
     where
-    stepCW f w = return $ step (realToFrac f) w
+    stepCW f w = step (realToFrac f) w
     reactCW e w = case fitScreenEvent screen display (eventFromCW screen e) of
-        Nothing -> return w
-        Just e' -> return $ react e' w
-    drawCW w = return $ displayCWPicture screen back (fitScreenPicture screen display $ draw w)
+        Nothing -> w
+        Just e' -> react e' w
+    drawCW w = displayCWPicture screen back (fitScreenPicture screen display $ draw w)
 
 
 

@@ -1,7 +1,7 @@
-{-# LANGUAGE PatternSynonyms, Trustworthy #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 {-
-  Copyright 2017 The CodeWorld Authors. All rights reserved.
+  Copyright 2019 The CodeWorld Authors. All rights reserved.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -}
-
 module CodeWorld.Event where
 
 import CodeWorld.Picture (Point)
@@ -24,7 +23,7 @@ import Data.Text (Text)
 {-| An event initiated by the user.
 
     Values of this type represent events that the user triggers when
-    using an interaction, defined with 'interactionOf'.
+    using an interactive program.
 
     Key events describe the key as 'Text'.  Most keys are represented
     by a single character text string, with the capital letter or other
@@ -56,20 +55,12 @@ import Data.Text (Text)
     * Cancel
     * Help
 -}
-data Event = KeyPress !Text
-           | KeyRelease !Text
-           | MousePress !MouseButton !Point
-           | MouseRelease !MouseButton !Point
-           | MouseMovement !Point
-  deriving (Eq, Show, Read)
-
-data MouseButton = LeftButton | MiddleButton | RightButton deriving (Eq, Show, Read)
-
-pattern PointerPress :: Point -> Event
-pattern PointerPress p = MousePress LeftButton p
-
-pattern PointerRelease :: Point -> Event
-pattern PointerRelease p = MouseRelease LeftButton p
-
-pattern PointerMovement :: Point -> Event
-pattern PointerMovement p = MouseMovement p
+data Event
+    = KeyPress !Text
+    | KeyRelease !Text
+    | PointerPress !Point
+    | PointerRelease !Point
+    | PointerMovement !Point
+    | TextEntry !Text
+    | TimePassing !Double
+    deriving (Eq, Show, Read)

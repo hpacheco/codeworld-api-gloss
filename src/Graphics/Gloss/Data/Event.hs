@@ -26,20 +26,22 @@ data Modifiers
 
 noModifiers = Modifiers Up Up Up
 
+--TODO: ignores mouse buttons
 eventToCW :: Display -> Event -> CW.Event
 eventToCW display (EventKey (Char c) toggle _ pos) = stringKeyToCW [toUpper c] toggle
 eventToCW display (EventKey (SpecialKey k) toggle _ pos) = specialKeyToCW k toggle
-eventToCW display (EventKey (MouseButton b) Down _ pos) = CW.MousePress (mouseButtonToCW b) (pointToCWWithDisplay display pos)
-eventToCW display (EventKey (MouseButton b) Up _ pos) = CW.MouseRelease (mouseButtonToCW b) (pointToCWWithDisplay display pos)
-eventToCW display (EventMotion p) = CW.MouseMovement (pointToCWWithDisplay display p)
+eventToCW display (EventKey (MouseButton b) Down _ pos) = CW.PointerPress (pointToCWWithDisplay display pos)
+eventToCW display (EventKey (MouseButton b) Up _ pos) = CW.PointerRelease (pointToCWWithDisplay display pos)
+eventToCW display (EventMotion p) = CW.PointerMovement (pointToCWWithDisplay display p)
 eventToCW display e = error $ "eventToCW: " ++ show e
 
+--TODO: ignores mouse buttons
 eventFromCW :: Display -> CW.Event -> Event
 eventFromCW display (CW.KeyPress k) = stringKeyFromCW (Text.unpack k) Down
 eventFromCW display (CW.KeyRelease k) = stringKeyFromCW (Text.unpack k) Up
-eventFromCW display (CW.MousePress b p) = EventKey (MouseButton $ mouseButtonFromCW b) Down noModifiers (pointFromCWWithDisplay display p)
-eventFromCW display (CW.MouseRelease b p) = EventKey (MouseButton $ mouseButtonFromCW b) Up noModifiers (pointFromCWWithDisplay display p)
-eventFromCW display (CW.MouseMovement p) = EventMotion (pointFromCWWithDisplay display p)
+eventFromCW display (CW.PointerPress p) = EventKey (MouseButton LeftButton) Down noModifiers (pointFromCWWithDisplay display p)
+eventFromCW display (CW.PointerRelease p) = EventKey (MouseButton LeftButton) Up noModifiers (pointFromCWWithDisplay display p)
+eventFromCW display (CW.PointerMovement p) = EventMotion (pointFromCWWithDisplay display p)
 eventFromCW display e = error $ "eventFromCW: " ++ show e
 
 stringKeyToCW :: String -> KeyState -> CW.Event
@@ -276,16 +278,6 @@ data MouseButton
     | MiddleButton	 
     | RightButton	 
   deriving (Eq,Ord,Show)
- 
-mouseButtonToCW :: MouseButton -> CW.MouseButton
-mouseButtonToCW LeftButton = CW.LeftButton
-mouseButtonToCW MiddleButton = CW.MiddleButton
-mouseButtonToCW RightButton = CW.RightButton
- 
-mouseButtonFromCW :: CW.MouseButton -> MouseButton
-mouseButtonFromCW CW.LeftButton =   LeftButton
-mouseButtonFromCW CW.MiddleButton = MiddleButton
-mouseButtonFromCW CW.RightButton =  RightButton
  
 data KeyState
     = Down	 
