@@ -1241,9 +1241,6 @@ onEvents canvas handler = do
     on window mouseMove $ do
         pos <- getMousePos canvas
         liftIO $ handler (PointerMovement pos)
-    --on canvas resize $ liftIO $ do
-    --    sz <- getSizeOfElement canvas
-    --    handler (Resize sz)
     on window resize $ liftIO $ do
         sz <- getSizeOfElement canvas
         handler (Resize sz)
@@ -1739,6 +1736,8 @@ runInspectIO controls initial stepHandler eventHandler drawHandler = do
         highlightSelectEvent False n = sendEvent $ Left (SelectEvent n)
     onEvents canvas (sendEvent . Right)
     inspect (drawPicHandler =<< getState) pauseEvent highlightSelectEvent
+    -- hpacheco: send an initial resize event (as gloss does), to fix reruns in the web UI
+    getSizeOfElement canvas >>= sendEvent . Right . Resize 
     waitForever
 
 -- Given a drawing, highlight the first node and select second node. Both recolor
