@@ -659,7 +659,7 @@ drawCodeWorldLogo ds x y w h = do
 
 -- in px, default value was 25
 fontHeight :: Int
-fontHeight = 50
+fontHeight = 100
 
 fontString :: TextStyle -> Font -> Text
 fontString style font = stylePrefix style <> T.pack (show fontHeight) <> "px " <> fontName font
