@@ -30,4 +30,4 @@ normalizeAngle f = f - 2 * pi * floor' (f / (2 * pi))
 
 
 angleToCW :: Float -> Double
-angleToCW x = - (realToFrac $ degToRad x)
+angleToCW x = (realToFrac $ degToRad x)
