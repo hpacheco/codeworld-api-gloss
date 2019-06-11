@@ -44,7 +44,7 @@ Library
                        CodeWorld.App,
                        CodeWorld.App2,
                        CodeWorld.CanvasM,
-                       CodewOrld.CollaborationUI,
+                       CodeWorld.CollaborationUI,
                        CodeWorld.Color,
                        CodeWorld.Driver,
                        CodeWorld.Event,
