@@ -40,6 +40,15 @@ Library
                        Graphics.Gloss.Interface.Environment,
                        Graphics.Gloss.Geometry.Angle,
                        Graphics.Gloss.Geometry.Line
+  Other-modules:       CodeWorld,
+                       CodeWorld.App,
+                       CodeWorld.App2,
+                       CodeWorld.CanvasM,
+                       CodewOrld.CollaborationUI,
+                       CodeWorld.Color,
+                       CodeWorld.Driver,
+                       CodeWorld.Event,
+                       CodeWorld.Picture
                        
   Build-depends:       base                 >= 4.9   && < 5,
                        containers           >= 0.5.7 && < 0.7,
