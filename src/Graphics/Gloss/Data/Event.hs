@@ -33,6 +33,7 @@ eventToCW display (EventKey (SpecialKey k) toggle _ pos) = specialKeyToCW k togg
 eventToCW display (EventKey (MouseButton b) Down _ pos) = CW.PointerPress (pointToCWWithDisplay display pos)
 eventToCW display (EventKey (MouseButton b) Up _ pos) = CW.PointerRelease (pointToCWWithDisplay display pos)
 eventToCW display (EventMotion p) = CW.PointerMovement (pointToCWWithDisplay display p)
+eventToCW display (EventResize (x,y)) = CW.Resize (realToFrac x,realToFrac y)
 eventToCW display e = error $ "eventToCW: " ++ show e
 
 --TODO: ignores mouse buttons
@@ -42,6 +43,7 @@ eventFromCW display (CW.KeyRelease k) = stringKeyFromCW (Text.unpack k) Up
 eventFromCW display (CW.PointerPress p) = EventKey (MouseButton LeftButton) Down noModifiers (pointFromCWWithDisplay display p)
 eventFromCW display (CW.PointerRelease p) = EventKey (MouseButton LeftButton) Up noModifiers (pointFromCWWithDisplay display p)
 eventFromCW display (CW.PointerMovement p) = EventMotion (pointFromCWWithDisplay display p)
+eventFromCW display (CW.Resize (x,y)) = EventResize (round x,round y)
 eventFromCW display e = error $ "eventFromCW: " ++ show e
 
 stringKeyToCW :: String -> KeyState -> CW.Event

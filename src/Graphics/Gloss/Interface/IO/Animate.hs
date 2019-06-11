@@ -4,7 +4,7 @@ module Graphics.Gloss.Interface.IO.Animate
         ( module Graphics.Gloss.Data.Display
         , module Graphics.Gloss.Data.Picture
         , module Graphics.Gloss.Data.Color
-        , animateIO,animateFitScreenIO)
+        , animateIO)
 where
 import Graphics.Gloss.Data.Display
 import Graphics.Gloss.Data.Picture
@@ -26,5 +26,5 @@ animateIO
 
 animateIO screen back go = CW.ioAnimationOf (liftM (displayCWPicture screen back) . go . realToFrac)
 
-animateFitScreenIO :: Display -> Display -> Color -> (Float -> IO Picture) -> IO ()
-animateFitScreenIO screen display back go = CW.ioAnimationOf (liftM (displayCWPicture screen back . fitScreenPicture screen display) . go . realToFrac)
+--animateFitScreenIO :: Display -> Display -> Color -> (Float -> IO Picture) -> IO ()
+--animateFitScreenIO screen display back go = CW.ioAnimationOf (liftM (displayCWPicture screen back . fitScreenPicture screen display) . go . realToFrac)

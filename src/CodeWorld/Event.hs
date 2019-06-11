@@ -63,4 +63,5 @@ data Event
     | PointerMovement !Point
     | TextEntry !Text
     | TimePassing !Double
+    | Resize !Point
     deriving (Eq, Show, Read)

@@ -120,6 +120,10 @@ import Text.Printf
 
 #endif
 
+orError str m = m >>= \x -> case x of
+    Nothing -> Prelude.error $ str
+    Just x -> return x
+
 --------------------------------------------------------------------------------
 -- The common interface, provided by both implementations below.
 -- | Draws a 'Picture'.  This is the simplest CodeWorld entry point.
@@ -1158,7 +1162,8 @@ ifDifferent f s0 = do
 modifyMVarIfDifferent :: MVar s -> (s -> IO s) -> IO Bool
 modifyMVarIfDifferent var f = do
     modifyMVar var $ \s0 -> do
-        case ifDifferent f s0 of
+        mb <- ifDifferent f s0
+        case mb of
             Nothing -> return (s0, False)
             Just s1 -> return (s1, True)
 
@@ -1236,6 +1241,13 @@ onEvents canvas handler = do
     on window mouseMove $ do
         pos <- getMousePos canvas
         liftIO $ handler (PointerMovement pos)
+    --on canvas resize $ liftIO $ do
+    --    sz <- getSizeOfElement canvas
+    --    handler (Resize sz)
+    on window resize $ liftIO $ do
+        sz <- getSizeOfElement canvas
+        handler (Resize sz)
+        
     return ()
 
 encodeEvent :: (Timestamp, Maybe Event) -> String
@@ -1391,7 +1403,8 @@ gameHandle numPlayers initial stepHandler eventHandler token gsm event = do
             t <- getTime
             let gameState0 = currentState stepHandler gameRate (t - tstart) f
             let eventFun = eventHandler pid event
-            case ifDifferent eventFun gameState0 of
+            b <- ifDifferent (return . eventFun) gameState0
+            case b of
                 Nothing -> putMVar gsm gs
                 Just s1 -> do
                     sendClientMessage
@@ -1635,24 +1648,37 @@ drawDebugState state drawing =
 -- Utility functions that apply a function in either the left or right half of a
 -- tuple.  Crucially, if the function preserves sharing on its side, then the
 -- wrapper also preserves sharing.
-inLeft :: (a -> a) -> (a, b) -> (a, b)
-inLeft f ab = unsafePerformIO $ do
+inLeft :: (a -> IO a) -> (a, b) -> IO (a, b)
+inLeft f ab = do
   let (a, b) = ab
   aName <- makeStableName $! a
-  let a' = f a
+  a' <- f a
   aName' <- makeStableName $! a'
   return $ if aName == aName' then ab else (a', b)
 
-inRight :: (b -> b) -> (a, b) -> (a, b)
-inRight f ab = unsafePerformIO $ do
+inRight :: (b -> IO b) -> (a, b) -> IO (a, b)
+inRight f ab = do
   let (a, b) = ab
   bName <- makeStableName $! b
-  let b' = f b
+  b' <- f b
   bName' <- makeStableName $! b'
   return $ if bName == bName' then ab else (a, b')
 
 foreign import javascript interruptible "window.dummyVar = 0;"
   waitForever :: IO ()
+
+getSizeOf :: String -> IO (Double,Double)
+getSizeOf iden = do
+    doc <- orError ("getSizeOf doc " ++ show iden) currentDocument
+    canvas <- orError ("getSizeOf iden " ++ show iden) $ getElementById doc (fromString iden :: JSString)
+    getSizeOfElement canvas
+
+getSizeOfElement :: Element -> IO (Double,Double)
+getSizeOfElement canvas = do
+    rect <- getBoundingClientRect canvas
+    cx <- ClientRect.getWidth rect
+    cy <- ClientRect.getHeight rect
+    return (realToFrac cx,realToFrac cy)
 
 -- Wraps the event and state from run so they can be paused by pressing the Inspect
 -- button.
@@ -1664,7 +1690,7 @@ runInspect ::
     -> (s -> Picture) 
     -> IO ()
 runInspect controls initial stepHandler eventHandler drawHandler = 
-    runInspectIO controls initial (\t -> return . stepHandler t) (\e -> return . eventHandler t) (return . drawHandler)
+    runInspectIO controls initial (\t -> return . stepHandler t) (\e -> return . eventHandler e) (return . drawHandler)
 
 runInspectIO :: 
        (Wrapped s -> [Control s])
@@ -1677,26 +1703,27 @@ runInspectIO controls initial stepHandler eventHandler drawHandler = do
     -- Ensure that the first frame picture doesn't expose any type errors,
     -- before showing the canvas.  This avoids showing a blank screen when
     -- there are deferred type errors that are effectively compile errors.
-    evaluate $ rnf $ drawHandler initial
+    pic <- drawHandler initial
+    evaluate $ rnf pic
 
     Just doc <- currentDocument
     Just canvas <- getElementById doc ("screen" :: JSString)
     let initialWrapper = (debugStateInit, wrappedInitial initial)
         stepHandlerWrapper dt wrapper@(debugState, _) =
             case debugStateActive debugState of
-                True -> wrapper
+                True -> return wrapper
                 False -> inRight (wrappedStep stepHandler dt) wrapper
         eventHandlerWrapper evt wrapper@(debugState, _) =
             case (debugStateActive debugState, evt) of
                 (_, Left debugEvent) ->
-                    inLeft (updateDebugState debugEvent) wrapper
-                (True, _) -> wrapper
+                    inLeft (return . updateDebugState debugEvent) wrapper
+                (True, _) -> return wrapper
                 (_, Right normalEvent) ->
                     inRight (wrappedEvent controls stepHandler eventHandler normalEvent) wrapper
         drawHandlerWrapper (debugState, wrappedState) =
             case debugStateActive debugState of
-                True -> drawDebugState debugState $ pictureToDrawing $ drawHandler (state wrappedState)
-                False -> pictureToDrawing (wrappedDraw controls drawHandler wrappedState)
+                True -> liftM (drawDebugState debugState . pictureToDrawing) $ drawHandler (state wrappedState)
+                False -> liftM pictureToDrawing $ wrappedDraw controls drawHandler wrappedState
         drawPicHandler (debugState, wrappedState) =
             drawHandler $ state wrappedState
     (sendEvent, getState) <-
@@ -1711,7 +1738,7 @@ runInspectIO controls initial stepHandler eventHandler drawHandler = do
         highlightSelectEvent True n = sendEvent $ Left (HighlightEvent n)
         highlightSelectEvent False n = sendEvent $ Left (SelectEvent n)
     onEvents canvas (sendEvent . Right)
-    inspect (drawPicHandler <$> getState) pauseEvent highlightSelectEvent
+    inspect (drawPicHandler =<< getState) pauseEvent highlightSelectEvent
     waitForever
 
 -- Given a drawing, highlight the first node and select second node. Both recolor
