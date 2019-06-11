@@ -524,20 +524,30 @@ arcDrawer b e r w ds =
 
 textDrawer sty fnt txt ds =
     DrawMethods
-    { drawShape =
-          withDS ds $ do
+    { drawShape = do
+          (screenx,screeny) <- liftIO $ getSizeOf "screen"
+          let screenx2 = screenx / 2
+          let screeny2 = screeny / 2
+          let textds = scaleDS (screenx2 / 10) (screenx2 / 10) ds
+          
+          withDS textds $ do
               CM.scale 1 (-1)
-              applyColor ds
+              applyColor textds
               CM.font (fontString sty fnt)
               CM.textStart
               CM.textBottom
-              CM.fillText txt (0, 0)
-    , shapeContains =
-          do CM.font (fontString sty fnt)
+              CM.fillText txt (0, realToFrac fontHeight / 4)
+    , shapeContains = do
+             (screenx,screeny) <- liftIO $ getSizeOf "screen"
+             let screenx2 = screenx / 2
+             let screeny2 = screeny / 2
+             let textds = scaleDS (screenx2 / 10) (screenx2 / 10) ds
+             
+             CM.font (fontString sty fnt)
              width <- CM.measureText txt
              let height = realToFrac fontHeight
-             withDS ds $
-                 CM.rect ((-0.5) * width) ((-0.5) * height) width height
+             withDS textds $
+                 CM.rect ((-0.5) * width) ((0.5) * height) width height
              CM.isPointInPath (0, 0)
     }
 
