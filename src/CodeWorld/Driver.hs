@@ -533,7 +533,7 @@ textDrawer sty fnt txt ds =
     , shapeContains =
           do CM.font (fontString sty fnt)
              width <- CM.measureText txt
-             let height = fontHeight
+             let height = realToFrac fontHeight
              withDS ds $
                  CM.rect ((-0.5) * width) ((-0.5) * height) width height
              CM.isPointInPath (0, 0)
@@ -650,7 +650,7 @@ fontHeight :: Int
 fontHeight = 50
 
 fontString :: TextStyle -> Font -> Text
-fontString style font = stylePrefix style <> Text.pack (show fontHeight) <> "px " <> fontName font
+fontString style font = stylePrefix style <> T.pack (show fontHeight) <> "px " <> fontName font
   where
     stylePrefix Plain = ""
     stylePrefix Bold = "bold "
