@@ -37,13 +37,14 @@ eventToCW display (EventResize (x,y)) = CW.Resize (realToFrac x,realToFrac y)
 eventToCW display e = error $ "eventToCW: " ++ show e
 
 --TODO: ignores mouse buttons
-eventFromCW :: Display -> CW.Event -> Event
-eventFromCW display (CW.KeyPress k) = stringKeyFromCW (Text.unpack k) Down
-eventFromCW display (CW.KeyRelease k) = stringKeyFromCW (Text.unpack k) Up
-eventFromCW display (CW.PointerPress p) = EventKey (MouseButton LeftButton) Down noModifiers (pointFromCWWithDisplay display p)
-eventFromCW display (CW.PointerRelease p) = EventKey (MouseButton LeftButton) Up noModifiers (pointFromCWWithDisplay display p)
-eventFromCW display (CW.PointerMovement p) = EventMotion (pointFromCWWithDisplay display p)
-eventFromCW display (CW.Resize (x,y)) = EventResize (round x,round y)
+eventFromCW :: Display -> CW.Event -> Maybe Event
+eventFromCW display (CW.KeyPress k) = Just $ stringKeyFromCW (Text.unpack k) Down
+eventFromCW display (CW.KeyRelease k) = Just $ stringKeyFromCW (Text.unpack k) Up
+eventFromCW display (CW.PointerPress p) = Just $ EventKey (MouseButton LeftButton) Down noModifiers (pointFromCWWithDisplay display p)
+eventFromCW display (CW.PointerRelease p) = Just $ EventKey (MouseButton LeftButton) Up noModifiers (pointFromCWWithDisplay display p)
+eventFromCW display (CW.PointerMovement p) = Just $ EventMotion (pointFromCWWithDisplay display p)
+eventFromCW display (CW.Resize (x,y)) = Just $ EventResize (round x,round y)
+eventFromCW display (CW.TimePassing _) = Nothing
 eventFromCW display e = error $ "eventFromCW: " ++ show e
 
 stringKeyToCW :: String -> KeyState -> CW.Event

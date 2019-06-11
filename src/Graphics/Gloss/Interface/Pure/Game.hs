@@ -13,9 +13,10 @@ play :: Display -> Color -> Int -> world -> (world -> Picture) -> (Event -> worl
 play display back framerate start draw react step = CW.interactionOf (display,start) stepCW reactCW drawCW
     where
     stepCW f (disp,w) = (disp,step (realToFrac f) w)
-    reactCW e (disp,w) = (disp',react (eventFromCW disp e) w)
-        where
-        disp' = case e of { CW.Resize (x,y) -> Display (round x) (round y); otherwise -> disp }
+    reactCW e (disp,w) = case eventFromCW disp e of
+        Nothing -> (disp,w)
+        Just e@(EventResize (x,y)) -> (Display x y,react e w)
+        Just e -> (disp,react e w)
     drawCW (disp,w) = displayCWPicture disp back (draw w)
 
 --playFitScreen :: Display -> Display -> Color -> Int -> world -> (world -> Picture) -> (Event -> world -> world) -> (Float -> world -> world) -> IO ()

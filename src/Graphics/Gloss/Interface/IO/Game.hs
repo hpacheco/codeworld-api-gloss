@@ -31,9 +31,10 @@ playIO  :: forall world
 playIO display back framerate start draw react step = CW.ioInteractionOf (display,start) stepCW reactCW drawCW
     where
     stepCW f (disp,w) = liftM (disp,) $ step (realToFrac f) w
-    reactCW e (disp,w) = do
-        let disp' = case e of { CW.Resize (x,y) -> Display (round x) (round y); otherwise -> disp }
-        liftM (disp',) $ react (eventFromCW disp e) w
+    reactCW e (disp,w) = case eventFromCW disp e of
+        Nothing -> return (disp,w)
+        Just e@(EventResize (x,y)) -> liftM (Display x y,) $ react e w
+        Just e -> liftM (disp,) $ react e w
     drawCW (disp,w) = liftM (displayCWPicture disp back) (draw w)
 
 --playFitScreenIO :: Display -> Display -> Color -> Int -> world -> (world -> IO Picture) -> (Event -> world -> IO world) -> (Float -> world -> IO world) -> IO ()
