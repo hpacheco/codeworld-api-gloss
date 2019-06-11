@@ -87,7 +87,7 @@ pictureToCW (ThickArc th1 th2 r t) = CW.thickArc (coordToCW t) (angleToCW th1) (
 pictureToCW (Text str) = CW.lettering $ Text.pack str
 pictureToCW (Color c p) = propagateColor (colorToCW c) p
 pictureToCW (Translate x y p) = CW.translated (coordToCW x) (coordToCW y) (pictureToCW p)
-pictureToCW (Rotate r p) = CW.rotated (angleToCW r) (pictureToCW p)
+pictureToCW (Rotate r p) = CW.rotated (-angleToCW r) (pictureToCW p) -- gloss rotates clockwise
 pictureToCW (Scale x y p) = CW.scaled (coordToCW x) (coordToCW y) (pictureToCW p)
 pictureToCW (Pictures ps) = CW.pictures $ reverse $ map pictureToCW ps
 
