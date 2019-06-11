@@ -530,9 +530,9 @@ textDrawer sty fnt txt ds =
           let screeny2 = screeny / 2
           let textds = scaleDS (screenx2 / 10) (screenx2 / 10) ds
           
-          withDS textds $ do
+          withDS ds $ do
               CM.scale 1 (-1)
-              applyColor textds
+              applyColor ds
               CM.font (fontString sty fnt)
               CM.textStart
               CM.textBottom
