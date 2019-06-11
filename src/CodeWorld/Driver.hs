@@ -533,7 +533,7 @@ textDrawer sty fnt txt ds =
     , shapeContains =
           do CM.font (fontString sty fnt)
              width <- CM.measureText txt
-             let height = 25 -- constant, defined in fontString
+             let height = fontHeight
              withDS ds $
                  CM.rect ((-0.5) * width) ((-0.5) * height) width height
              CM.isPointInPath (0, 0)
@@ -645,8 +645,12 @@ drawCodeWorldLogo ds x y w h = do
                 CM.drawImage logo 0 0 w h
             CM.drawImage img x y w h
 
+-- in px, default value was 25
+fontHeight :: Int
+fontHeight = 50
+
 fontString :: TextStyle -> Font -> Text
-fontString style font = stylePrefix style <> "25px " <> fontName font
+fontString style font = stylePrefix style <> Text.pack (show fontHeight) <> "px " <> fontName font
   where
     stylePrefix Plain = ""
     stylePrefix Bold = "bold "
