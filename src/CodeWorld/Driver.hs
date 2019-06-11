@@ -529,6 +529,8 @@ textDrawer sty fnt txt ds =
               CM.scale 1 (-1)
               applyColor ds
               CM.font (fontString sty fnt)
+              CM.textStart
+              CM.textBottom
               CM.fillText txt (0, 0)
     , shapeContains =
           do CM.font (fontString sty fnt)
