@@ -528,11 +528,11 @@ textDrawer sty fnt txt ds =
           (screenx,screeny) <- liftIO $ getSizeOf "screen"
           let screenx2 = screenx / 2
           let screeny2 = screeny / 2
-          let textds = scaleDS (screenx2 / 10) (screenx2 / 10) ds
+          let textds = scaleDS (screenx2 / 10) (screeny2 / 10) ds
           
-          withDS ds $ do
+          withDS textds $ do
               CM.scale 1 (-1)
-              applyColor ds
+              applyColor textds
               CM.font (fontString sty fnt)
               CM.textStart
               CM.textBottom
@@ -541,7 +541,7 @@ textDrawer sty fnt txt ds =
              (screenx,screeny) <- liftIO $ getSizeOf "screen"
              let screenx2 = screenx / 2
              let screeny2 = screeny / 2
-             let textds = scaleDS (screenx2 / 10) (screenx2 / 10) ds
+             let textds = scaleDS (screenx2 / 10) (screeny2 / 10) ds
              
              CM.font (fontString sty fnt)
              width <- CM.measureText txt
