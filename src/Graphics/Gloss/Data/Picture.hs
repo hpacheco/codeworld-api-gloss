@@ -102,7 +102,7 @@ propagateColor c pic@(ThickArc {}) = CW.colored c (pictureToCW pic)
 propagateColor c pic@(Text {}) = CW.colored c (pictureToCW pic)
 propagateColor c pic@(Color _ p) = pictureToCW pic
 propagateColor c pic@(Translate x y p) = CW.translated (coordToCW x) (coordToCW y) $ propagateColor c p
-propagateColor c pic@(Rotate r p) = CW.rotated (angleToCW r) $ propagateColor c p
+propagateColor c pic@(Rotate r p) = CW.rotated (-angleToCW r) $ propagateColor c p
 propagateColor c pic@(Scale x y p) = CW.scaled (coordToCW x) (coordToCW y) $ propagateColor c p
 propagateColor c pic@(Pictures ps) = CW.pictures $ map (propagateColor c) ps
 
