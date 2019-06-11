@@ -61,7 +61,7 @@ data Event
     | PointerPress !Point
     | PointerRelease !Point
     | PointerMovement !Point
-    | TextEntry !Text
+--    | TextEntry !Text -- hpacheco: remove text entry for gloss compatibility
     | TimePassing !Double
     | Resize !Point
     deriving (Eq, Show, Read)

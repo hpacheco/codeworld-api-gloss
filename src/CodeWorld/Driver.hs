@@ -1210,6 +1210,7 @@ getMousePos canvas = do
             ( fromIntegral (ix - mx) / realToFrac unitLen
             , fromIntegral (my - iy) / realToFrac unitLen)
 
+--hpacheco: remove TextEntry (for gloss everything are keys)
 onEvents :: Element -> (Event -> IO ()) -> IO ()
 onEvents canvas handler = do
     Just window <- currentWindow
@@ -1222,7 +1223,7 @@ onEvents canvas handler = do
             stopPropagation
         key <- getKey =<< event
         when (T.length key == 1) $ do
-            liftIO $ handler (TextEntry key)
+            liftIO $ handler (KeyPress key)
             preventDefault
             stopPropagation
     on window keyUp $ do
@@ -1230,6 +1231,11 @@ onEvents canvas handler = do
         let keyName = keyCodeToText code
         when (keyName /= "") $ do
             liftIO $ handler (KeyRelease keyName)
+            preventDefault
+            stopPropagation
+        key <- getKey =<< event
+        when (T.length key == 1) $ do
+            liftIO $ handler (KeyRelease key)
             preventDefault
             stopPropagation
     on window mouseDown $ do

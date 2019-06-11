@@ -1,4 +1,4 @@
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE ViewPatterns, Trustworthy #-}
 
 module Graphics.Gloss.Data.Event where
 
@@ -27,13 +27,13 @@ data Modifiers
 noModifiers = Modifiers Up Up Up
 
 --TODO: ignores mouse buttons
-eventToCW :: Display -> Event -> CW.Event
-eventToCW display (EventKey (Char c) toggle _ pos) = stringKeyToCW [toUpper c] toggle
-eventToCW display (EventKey (SpecialKey k) toggle _ pos) = specialKeyToCW k toggle
-eventToCW display (EventKey (MouseButton b) Down _ pos) = CW.PointerPress (pointToCWWithDisplay display pos)
-eventToCW display (EventKey (MouseButton b) Up _ pos) = CW.PointerRelease (pointToCWWithDisplay display pos)
-eventToCW display (EventMotion p) = CW.PointerMovement (pointToCWWithDisplay display p)
-eventToCW display (EventResize (x,y)) = CW.Resize (realToFrac x,realToFrac y)
+eventToCW :: Display -> Event -> Maybe CW.Event
+eventToCW display (EventKey (Char c) toggle _ pos) = Just $ stringKeyToCW [toUpper c] toggle
+eventToCW display (EventKey (SpecialKey k) toggle _ pos) = Just $ specialKeyToCW k toggle
+eventToCW display (EventKey (MouseButton b) Down _ pos) = Just $ CW.PointerPress (pointToCWWithDisplay display pos)
+eventToCW display (EventKey (MouseButton b) Up _ pos) = Just $ CW.PointerRelease (pointToCWWithDisplay display pos)
+eventToCW display (EventMotion p) = Just $ CW.PointerMovement (pointToCWWithDisplay display p)
+eventToCW display (EventResize (x,y)) = Just $ CW.Resize (realToFrac x,realToFrac y)
 eventToCW display e = error $ "eventToCW: " ++ show e
 
 --TODO: ignores mouse buttons
