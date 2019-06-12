@@ -111,6 +111,11 @@ import qualified JavaScript.Web.MessageEvent as WS
 import qualified JavaScript.Web.WebSocket as WS
 import Unsafe.Coerce
 
+import           GHCJS.DOM.HTMLMediaElement as HTML
+import           GHCJS.DOM.HTMLImageElement as HTML
+import GHCJS.DOM.SpeechSynthesis
+import GHCJS.DOM.SpeechSynthesisUtterance
+
 #else
 
 import Data.Time.Clock
@@ -123,6 +128,30 @@ import Text.Printf
 orError str m = m >>= \x -> case x of
     Nothing -> Prelude.error $ str
     Just x -> return x
+
+toHTMLImageElement :: Element -> IO HTMLImageElement
+toHTMLImageElement e = do
+    Just x <- toJSVal e >>= fromJSVal
+    return x
+
+toHTMLMediaElement :: Element -> IO HTML.HTMLMediaElement
+toHTMLMediaElement e = do
+    Just x <- toJSVal e >>= fromJSVal
+    return x
+
+say :: Text -> IO ()
+say str = do
+    utt <- newSpeechSynthesisUtterance (Just str)
+    window <- orError "display window" currentWindow
+    speech <- Window.getSpeechSynthesis window
+    speak speech utt
+
+playAudioById :: String -> IO ()
+playAudioById elid = do
+    doc <- orError ("playAudioById " ++ show elid) currentDocument
+    el <- orError ("playAudioById " ++ show elid) $ getElementById doc (fromString elid :: JSString)
+    hel <- CodeWorld.Driver.toHTMLMediaElement el
+    HTML.play hel
 
 --------------------------------------------------------------------------------
 -- The common interface, provided by both implementations below.
@@ -1448,7 +1477,7 @@ getWebSocketURL = do
             case proto of
                 "http:" -> "ws://" <> hostname <> ":9160/gameserver"
                 "https:" -> "wss://" <> hostname <> "/gameserver"
-                _ -> error "Unrecognized protocol"
+                _ -> Prelude.error "Unrecognized protocol"
     return url
 
 connectToGameServer :: (ServerMessage -> IO ()) -> IO WS.WebSocket

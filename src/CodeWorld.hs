@@ -142,6 +142,7 @@ module CodeWorld (
     , Event(..)
     -- * Debugging
     , trace
+    , say, playAudioById
     ) where
 
 import CodeWorld.Color
