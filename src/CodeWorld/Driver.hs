@@ -148,8 +148,8 @@ say str = do
 
 playAudioById :: String -> IO ()
 playAudioById elid = do
-    doc <- orError ("playAudioById " ++ show elid) currentDocument
-    el <- orError ("playAudioById " ++ show elid) $ getElementById doc (fromString elid :: JSString)
+    doc <- orError ("playAudioById document " ++ show elid) currentDocument
+    el <- orError ("playAudioById element " ++ show elid) $ getElementById doc (fromString elid :: JSString)
     hel <- CodeWorld.Driver.toHTMLMediaElement el
     HTML.play hel
 
