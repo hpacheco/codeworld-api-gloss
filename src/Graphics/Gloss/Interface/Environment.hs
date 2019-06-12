@@ -1,11 +1,14 @@
 {-# LANGUAGE CPP #-}
 
-module Graphics.Gloss.Interface.Environment (getScreenSize,getDisplay) where
+module Graphics.Gloss.Interface.Environment where
 
 import Graphics.Gloss.Data.Display
 
 import CodeWorld as CW
 import CodeWorld.Driver as CW
+
+playAudioById = CW.playAudioById
+say = CW.say
 
 #if defined(ghcjs_HOST_OS)
 
