@@ -139,11 +139,11 @@ toHTMLMediaElement e = do
     Just x <- toJSVal e >>= fromJSVal
     return x
 
-foreign import javascript unsafe "printMessage($1,$2);"
-    printMessage :: JSString -> JSString -> IO ()
+foreign import javascript unsafe "addMessage($1,$2);"
+    addMessage :: JSString -> JSString -> IO ()
 
 reportRuntimeMessage :: String -> IO ()
-reportRuntimeMessage str = printMessage ("log" :: JSString) (fromString str)
+reportRuntimeMessage str = addMessage ("log" :: JSString) (fromString str)
 
 say :: Text -> IO ()
 say str = do
