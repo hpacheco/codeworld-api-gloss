@@ -143,7 +143,7 @@ foreign import javascript unsafe "printMessage($1,$2);"
     printMessage :: JSString -> JSString -> IO ()
 
 reportRuntimeMessage :: String -> IO ()
-reportRuntimeMessage str = printMessage ("log" :: JSString) (Data.JSString.unpack str)
+reportRuntimeMessage str = printMessage ("log" :: JSString) (fromString str)
 
 say :: Text -> IO ()
 say str = do
