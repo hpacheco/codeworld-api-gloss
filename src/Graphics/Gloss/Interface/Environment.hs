@@ -9,6 +9,7 @@ import CodeWorld.Driver as CW
 
 playAudioById = CW.playAudioById
 say = CW.say
+reportRuntimeMessage = CW.reportRuntimeMessage
 
 #if defined(ghcjs_HOST_OS)
 
