@@ -139,6 +139,12 @@ toHTMLMediaElement e = do
     Just x <- toJSVal e >>= fromJSVal
     return x
 
+foreign import javascript unsafe "printMessage($1,$2);"
+    printMessage :: JSString -> JSString -> IO ()
+
+reportRuntimeMessage :: String -> IO ()
+reportRuntimeMessage str = printLogMessage ("log" :: JSString) (Data.JSString.unpack)
+
 say :: Text -> IO ()
 say str = do
     utt <- newSpeechSynthesisUtterance (Just str)

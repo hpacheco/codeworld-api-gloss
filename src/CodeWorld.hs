@@ -143,6 +143,7 @@ module CodeWorld (
     -- * Debugging
     , trace
     , say, playAudioById
+    , reportRuntimeMessage
     ) where
 
 import CodeWorld.Color
