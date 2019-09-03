@@ -144,6 +144,7 @@ module CodeWorld (
     , trace
     , say, playAudioById
     , reportRuntimeMessage
+    , loadImage, loadImageById, loadSizedImageById,
     ) where
 
 import CodeWorld.Color

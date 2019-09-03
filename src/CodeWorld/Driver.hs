@@ -75,6 +75,9 @@ import Text.Printf
 import Text.Read
 
 #ifdef ghcjs_HOST_OS
+    
+import Data.Unique
+import System.FilePath
 
 import CodeWorld.Message
 import CodeWorld.Prediction
@@ -86,6 +89,7 @@ import Data.JSString.Text
 import Data.Word
 import GHCJS.Concurrent (withoutPreemption)
 import GHCJS.DOM
+import qualified GHCJS.DOM.Node as Node
 import qualified GHCJS.DOM.ClientRect as ClientRect
 import GHCJS.DOM.Document hiding (evaluate)
 import GHCJS.DOM.Element
@@ -162,15 +166,15 @@ playAudioById elid = do
 --------------------------------------------------------------------------------
 -- The common interface, provided by both implementations below.
 -- | Draws a 'Picture'.  This is the simplest CodeWorld entry point.
-drawingOf :: Picture  -- ^ The picture to show on the screen.
+drawingOf :: Color -> Picture  -- ^ The picture to show on the screen.
           -> IO ()
 
 -- | Shows an animation, with a picture for each time given by the parameter.
-animationOf :: (Double -> Picture)  -- ^ A function that produces animation
+animationOf :: Color -> (Double -> Picture)  -- ^ A function that produces animation
                                     --   frames, given the time in seconds.
             -> IO ()
 
-ioAnimationOf :: (Double -> IO Picture)  -- ^ A function that produces animation
+ioAnimationOf :: Color -> (Double -> IO Picture)  -- ^ A function that produces animation
                                     --   frames, given the time in seconds.
             -> IO ()
 
@@ -181,7 +185,7 @@ activityOf
   :: world                       -- ^ The initial state of the interaction.
   -> (Event -> world -> world)   -- ^ The event handling function, which updates
                                  --   the state given an event.
-  -> (world -> Picture)          -- ^ The visualization function, which converts
+  -> Color -> (world -> Picture)          -- ^ The visualization function, which converts
                                  --   the state into a picture to display.
   -> IO ()
 
@@ -189,7 +193,7 @@ ioActivityOf
   :: world                       -- ^ The initial state of the interaction.
   -> (Event -> world -> IO world)   -- ^ The event handling function, which updates
                                  --   the state given an event.
-  -> (world -> IO Picture)          -- ^ The visualization function, which converts
+  -> Color -> (world -> IO Picture)          -- ^ The visualization function, which converts
                                  --   the state into a picture to display.
   -> IO ()
 
@@ -200,7 +204,7 @@ debugActivityOf
   :: world                       -- ^ The initial state of the interaction.
   -> (Event -> world -> world)   -- ^ The event handling function, which updates
                                  --   the state given an event.
-  -> (world -> Picture)          -- ^ The visualization function, which converts
+  -> Color -> (world -> Picture)          -- ^ The visualization function, which converts
                                  --   the state into a picture to display.
   -> IO ()
 
@@ -214,7 +218,7 @@ groupActivityOf
   -> StaticPtr (Int -> Event -> world -> world)
           -- ^ The event handling function, which updates the state given a
           --   participant number and user interface event.
-  -> StaticPtr (Int -> world -> Picture)
+  -> Color -> StaticPtr (Int -> world -> Picture)
           -- ^ The visualization function, which converts a participant number
           --   and the state into a picture to display.
   -> IO ()
@@ -229,7 +233,7 @@ unsafeGroupActivityOf
   -> (Int -> Event -> world -> world)
           -- ^ The event handling function, which updates the state given a
           --   participant number and user interface event.
-  -> (Int -> world -> Picture)
+  -> Color -> (Int -> world -> Picture)
           -- ^ The visualization function, which converts a participant number
           --   and the state into a picture to display.
   -> IO ()
@@ -240,7 +244,7 @@ simulationOf
   :: world                       -- ^ The initial state of the simulation.
   -> (Double -> world -> world)  -- ^ The time step function, which advances
                                  --   the state given the time difference.
-  -> (world -> Picture)          -- ^ The visualization function, which converts
+  -> Color -> (world -> Picture)          -- ^ The visualization function, which converts
                                  --   the state into a picture to display.
   -> IO ()
 
@@ -248,7 +252,7 @@ ioSimulationOf
   :: world                       -- ^ The initial state of the simulation.
   -> (Double -> world -> IO world)  -- ^ The time step function, which advances
                                  --   the state given the time difference.
-  -> (world -> IO Picture)          -- ^ The visualization function, which converts
+  -> Color -> (world -> IO Picture)          -- ^ The visualization function, which converts
                                  --   the state into a picture to display.
   -> IO ()
 
@@ -256,7 +260,7 @@ debugSimulationOf
   :: world                       -- ^ The initial state of the simulation.
   -> (Double -> world -> world)  -- ^ The time step function, which advances
                                  --   the state given the time difference.
-  -> (world -> Picture)          -- ^ The visualization function, which converts
+  -> Color -> (world -> Picture)          -- ^ The visualization function, which converts
                                  --   the state into a picture to display.
   -> IO ()
 
@@ -269,7 +273,7 @@ interactionOf
                                  --   the state given the time difference.
   -> (Event -> world -> world)   -- ^ The event handling function, which updates
                                  --   the state given a user interface event.
-  -> (world -> Picture)          -- ^ The visualization function, which converts
+  -> Color -> (world -> Picture)          -- ^ The visualization function, which converts
                                  --   the state into a picture to display.
   -> IO ()
 
@@ -279,7 +283,7 @@ ioInteractionOf
                                  --   the state given the time difference.
   -> (Event -> world -> IO world)   -- ^ The event handling function, which updates
                                  --   the state given a user interface event.
-  -> (world -> IO Picture)          -- ^ The visualization function, which converts
+  -> Color -> (world -> IO Picture)          -- ^ The visualization function, which converts
                                  --   the state into a picture to display.
   -> IO ()
 
@@ -289,7 +293,7 @@ debugInteractionOf
                                  --   the state given the time difference.
   -> (Event -> world -> world)   -- ^ The event handling function, which updates
                                  --   the state given a user interface event.
-  -> (world -> Picture)          -- ^ The visualization function, which converts
+  -> Color -> (world -> Picture)          -- ^ The visualization function, which converts
                                  --   the state into a picture to display.
   -> IO ()
 
@@ -306,7 +310,7 @@ collaborationOf
   -> StaticPtr (Int -> Event -> world -> world)
           -- ^ The event handling function, which updates the state given a
           --   participant number and user interface event.
-  -> StaticPtr (Int -> world -> Picture)
+  -> Color -> StaticPtr (Int -> world -> Picture)
           -- ^ The visualization function, which converts a participant number
           --   and the state into a picture to display.
   -> IO ()
@@ -324,7 +328,7 @@ unsafeCollaborationOf
   -> (Int -> Event -> world -> world)
           -- ^ The event handling function, which updates the state given a
           --   participant number and user interface event.
-  -> (Int -> world -> Picture)
+  -> Color -> (Int -> world -> Picture)
           -- ^ The visualization function, which converts a participant number
           --   and the state into a picture to display.
   -> IO ()
@@ -388,6 +392,7 @@ pictureToDrawing (Sector _ b e r) = Shape $ sectorDrawer b e r
 pictureToDrawing (Arc _ b e r) = Shape $ arcDrawer b e r 0
 pictureToDrawing (ThickArc _ b e r w) = Shape $ arcDrawer b e r w
 pictureToDrawing (Lettering _ txt) = Shape $ textDrawer Plain Serif txt
+pictureToDrawing (Image _ w h dta) = Shape $ imageDrawer w h dta
 pictureToDrawing (Blank _) = Drawings $ []
 pictureToDrawing (StyledLettering _ sty fnt txt) = Shape $ textDrawer sty fnt txt
 pictureToDrawing (Logo _) = Shape $ logoDrawer
@@ -440,6 +445,7 @@ pathDrawer :: MonadCanvas m => [Point] -> Double -> Bool -> Bool -> Drawer m
 sectorDrawer :: MonadCanvas m => Double -> Double -> Double -> Drawer m
 arcDrawer :: MonadCanvas m => Double -> Double -> Double -> Double -> Drawer m
 textDrawer :: MonadCanvas m => TextStyle -> Font -> Text -> Drawer m
+imageDrawer :: MonadCanvas m => Int -> Int -> Img -> Drawer m
 logoDrawer :: MonadCanvas m => Drawer m
 coordinatePlaneDrawer :: MonadCanvas m => Drawer m
 coordinatePlaneDrawing :: MonadCanvas m => Drawing m
@@ -584,6 +590,22 @@ textDrawer sty fnt txt ds =
              withDS textds $
                  CM.rect ((-0.5) * width) ((0.5) * height) width height
              CM.isPointInPath (0, 0)
+    }
+
+imageDrawer w h dta ds = 
+    DrawMethods
+    { drawShape = do
+        withDS ds $ do
+            CM.scale 1 (-1)
+            cimg <- CM.imgToCanvas dta
+            let w2 = 25 * (realToFrac w) / 2
+            let h2 = 25 * (realToFrac h) / 2
+            CM.drawImage cimg (round (-w2)) (round (-h2)) (25 * w) (25 * h)
+    , shapeContains = do
+        let w2 = realToFrac w / 2
+        let h2 = realToFrac h / 2
+        withDS ds $ CM.rect (-w2) (-h2) (w2) (h2)
+        CM.isPointInPath (0,0)
     }
 
 logoDrawer ds =
@@ -735,9 +757,9 @@ handlePointRequest getPic pt = do
     findTopShapeFromPoint pt drawing
 
 inspect ::
-       IO Picture -> (Bool -> IO ()) -> (Bool -> Maybe NodeId -> IO ()) -> IO ()
-inspect getPic handleActive highlight =
-    initDebugMode handleActive getPic highlight
+       Color -> IO Picture -> (Bool -> IO ()) -> (Bool -> Maybe NodeId -> IO ()) -> IO ()
+inspect background getPic handleActive highlight =
+    initDebugMode handleActive background getPic highlight
 
 trim :: Int -> String -> String
 trim x y
@@ -751,6 +773,9 @@ showFloat x
   | otherwise = result
   where result = stripZeros (showFFloatAlt (Just 4) x "")
         stripZeros = reverse . dropWhile (== '.') . dropWhile (== '0') . reverse
+
+showInt :: Int -> String
+showInt x = showFloat (realToFrac x)
 
 showPoints :: [Point] -> String
 showPoints pts =
@@ -867,6 +892,7 @@ describePicture (Pictures _ _)
 describePicture (PictureAnd _ _)
   | haskellMode = "(&)"
   | otherwise   = "... & ..."
+describePicture (Image _ w h _) = printf "image %s %s" (showInt w) (showInt h)
 
 getPictureSrcLoc :: Picture -> Maybe SrcLoc
 getPictureSrcLoc (SolidPolygon loc _) = loc
@@ -900,6 +926,7 @@ getPictureSrcLoc (Logo loc) = loc
 getPictureSrcLoc (CoordinatePlane loc) = loc
 getPictureSrcLoc (Pictures loc _) = loc
 getPictureSrcLoc (PictureAnd loc _) = loc
+getPictureSrcLoc (Image loc _ _ _) = loc
 
 -- If a picture is found, the result will include an array of the base picture
 -- and all transformations.
@@ -913,16 +940,16 @@ findTopShapeFromPoint (x, y) pic = do
         True -> return $ Just node
         False -> return Nothing
 
-drawFrame :: MonadCanvas m => Drawing m -> m ()
-drawFrame drawing = do
-    CM.fillColor 255 255 255 1
+drawFrame :: MonadCanvas m => Color -> Drawing m -> m ()
+drawFrame (RGBA r g b a) drawing = do
+    CM.fillColor (round $ 255 * r) (round $ 255 * g) (round $ 255 * b) a
     CM.fillRect (-250) (-250) 500 500
     drawDrawing initialDS drawing
 
-setupScreenContext :: MonadCanvas m => Int -> Int -> m ()
-setupScreenContext cw ch = do
+setupScreenContext :: MonadCanvas m => Color -> Int -> Int -> m ()
+setupScreenContext (RGBA r g b a) cw ch = do
     -- blank before transformation (canvas might be non-square)
-    CM.fillColor 255 255 255 1
+    CM.fillColor (round $ 255 * r) (round $ 255 * g) (round $ 255 * b) a
     CM.fillRect 0 0 (fromIntegral cw) (fromIntegral ch)
     CM.translate (realToFrac cw / 2) (realToFrac ch / 2)
     let s = min (realToFrac cw / 500) (realToFrac ch / 500)
@@ -932,6 +959,50 @@ setupScreenContext cw ch = do
     CM.textMiddle
 
 #ifdef ghcjs_HOST_OS
+
+loadImage :: FilePath -> IO Picture
+loadImage path = do
+    i <- newUnique
+    let name = dropExtension (takeFileName path)++show (hashUnique i)
+    doc <- orError "loadImage doc" currentDocument
+    !elem <- createElement doc (fromString "img" :: JSString)
+    setAttribute elem ("style" :: JSString) ("visibility: hidden;" :: String)
+    setAttribute elem ("id" :: JSString) name
+    setAttribute elem ("src" :: JSString) path
+    body <- orError "loadImage body" $ getBody doc
+    Node.appendChild body elem
+    --img <- toHTMLImageElement elem
+    let stringimg = StringImg name
+    --let htmlimg = (HTMLImg img)
+    (w,h) <- getImgSize stringimg
+    --setAttribute elem ("width" :: JSString) (show w)
+    --setAttribute elem ("height" :: JSString) (show h)
+    return $! image (round w) (round h) stringimg
+
+loadImageById :: String -> IO Picture
+loadImageById n = do
+    let img = (StringImg n)
+    (w,h) <- getImgSize img
+    return $ image (round w) (round h) img
+
+loadSizedImageById :: Int -> Int -> String -> IO Picture
+loadSizedImageById w h n = do
+    let img = (StringImg n)
+    return $ image w h img
+
+getImgSize :: Img -> IO (Double,Double)
+getImgSize img = do
+    (w,h) <- getImgSize' img --catch (getImgSize' img) $ \(e::SomeException) -> trace (T.pack $ displayException e) $ do
+--        threadDelay (10^4)
+--        getImgSize img
+    if (w==0 && h==0)
+        then do
+            threadDelay (10^4)
+            getImgSize img
+        else return (w,h)
+  where
+    getImgSize' (StringImg img) = getSizeOf img
+    getImgSize' (HTMLImg img) = getSizeOfElement (toElement img)
 
 --------------------------------------------------------------------------------
 -- GHCJS implementation of drawing
@@ -962,10 +1033,10 @@ nextFrame :: IO Double
 nextFrame = waitForAnimationFrame >> getTime
 
 initDebugMode :: (Bool -> IO ())
-              -> IO Picture
+              -> Color -> IO Picture
               -> (Bool -> Maybe NodeId -> IO ())
               -> IO ()
-initDebugMode setActive getPic highlight = do
+initDebugMode setActive background getPic highlight = do
     getNodeCB <-
         syncCallback1' $ \pointJS -> do
             let obj = unsafeCoerce pointJS
@@ -997,8 +1068,8 @@ initDebugMode setActive getPic highlight = do
             setCanvasSize (elementFromCanvas offscreenCanvas) canvas
             screen <- getCodeWorldContext (canvasFromElement canvas)
             rect <- getBoundingClientRect canvas
-            withScreen (elementFromCanvas offscreenCanvas) rect $
-                drawFrame (node <> coordinatePlaneDrawing)
+            withScreen background (elementFromCanvas offscreenCanvas) rect $
+                drawFrame background (node <> coordinatePlaneDrawing)
             rect <- getBoundingClientRect canvas
             cw <- ClientRect.getWidth rect
             ch <- ClientRect.getHeight rect
@@ -1072,13 +1143,13 @@ picToObj' pic = objToJSVal <$> case pic of
 foreign import javascript unsafe "/\\bmode=haskell\\b/.test(location.search)"
     haskellMode :: Bool
 
-withScreen :: Element -> ClientRect.ClientRect -> CanvasM a -> IO a
-withScreen canvas rect action = do
+withScreen :: Color -> Element -> ClientRect.ClientRect -> CanvasM a -> IO a
+withScreen background canvas rect action = do
     cw <- realToFrac <$> ClientRect.getWidth rect
     ch <- realToFrac <$> ClientRect.getHeight rect
     ctx <- getCodeWorldContext (canvasFromElement canvas)
     runCanvasM (cw, ch) ctx $ CM.saveRestore $ do
-        setupScreenContext (round cw) (round ch)
+        setupScreenContext background (round cw) (round ch)
         action
 
 setCanvasSize :: Element -> Element -> IO ()
@@ -1095,7 +1166,7 @@ setCanvasSize target canvas = do
 -- Stand-alone implementation of drawing
 
 initDebugMode :: (Bool -> IO ())
-              -> IO Picture
+              -> Color -> IO Picture
               -> (Bool -> Maybe NodeId -> IO ())
               -> IO ()
 initDebugMode _ _ _ = return ()
@@ -1530,9 +1601,9 @@ runGame ::
     -> (StdGen -> s)
     -> (Double -> s -> s)
     -> (Int -> Event -> s -> s)
-    -> (Int -> s -> Picture)
+    -> Color -> (Int -> s -> Picture)
     -> IO ()
-runGame token numPlayers initial stepHandler eventHandler drawHandler = do
+runGame token numPlayers initial stepHandler eventHandler background drawHandler = do
     enableDeterministicMath
     let fullStepHandler dt = stepHandler dt . eventHandler (-1) (TimePassing dt)
     showCanvas
@@ -1561,8 +1632,8 @@ runGame token numPlayers initial stepHandler eventHandler drawHandler = do
             picFrame <- makeStableName $! pic
             when (picFrame /= lastFrame) $ do
                 rect <- getBoundingClientRect canvas
-                withScreen (elementFromCanvas offscreenCanvas) rect $
-                    drawFrame (pictureToDrawing pic)
+                withScreen background (elementFromCanvas offscreenCanvas) rect $
+                    drawFrame background (pictureToDrawing pic)
                 rect <- getBoundingClientRect canvas
                 cw <- ClientRect.getWidth rect
                 ch <- ClientRect.getHeight rect
@@ -1593,10 +1664,10 @@ propagateErrors tid action = action `catch` \ (e :: SomeException) -> throwTo ti
 run :: s
     -> (Double -> s -> IO s)
     -> (e -> s -> IO s)
-    -> (s -> IO (Drawing CanvasM))
+    -> Color -> (s -> IO (Drawing CanvasM))
     -> (Double -> e)
     -> IO (e -> IO (), IO s)
-run initial stepHandler eventHandler drawHandler injectTime = do
+run initial stepHandler eventHandler background drawHandler injectTime = do
     let fullStepHandler dt = stepHandler dt <=< eventHandler (injectTime dt)
     showCanvas
     Just window <- currentWindow
@@ -1618,8 +1689,8 @@ run initial stepHandler eventHandler drawHandler injectTime = do
             picFrame <- makeStableName $! pic
             when (picFrame /= lastFrame) $ do
                 rect <- getBoundingClientRect canvas
-                withScreen (elementFromCanvas offscreenCanvas) rect $
-                    drawFrame pic
+                withScreen background (elementFromCanvas offscreenCanvas) rect $
+                    drawFrame background pic
                 rect <- getBoundingClientRect canvas
                 cw <- ClientRect.getWidth rect
                 ch <- ClientRect.getHeight rect
@@ -1741,19 +1812,19 @@ runInspect ::
     -> s
     -> (Double -> s -> s)
     -> (Event -> s -> s)
-    -> (s -> Picture) 
+    -> Color -> (s -> Picture) 
     -> IO ()
-runInspect controls initial stepHandler eventHandler drawHandler = 
-    runInspectIO controls initial (\t -> return . stepHandler t) (\e -> return . eventHandler e) (return . drawHandler)
+runInspect controls initial stepHandler eventHandler background drawHandler = 
+    runInspectIO controls initial (\t -> return . stepHandler t) (\e -> return . eventHandler e) background (return . drawHandler)
 
 runInspectIO :: 
        (Wrapped s -> [Control s])
     -> s
     -> (Double -> s -> IO s)
     -> (Event -> s -> IO s)
-    -> (s -> IO Picture) 
+    -> Color -> (s -> IO Picture) 
     -> IO ()
-runInspectIO controls initial stepHandler eventHandler drawHandler = do
+runInspectIO controls initial stepHandler eventHandler background drawHandler = do
     -- Ensure that the first frame picture doesn't expose any type errors,
     -- before showing the canvas.  This avoids showing a blank screen when
     -- there are deferred type errors that are effectively compile errors.
@@ -1777,7 +1848,7 @@ runInspectIO controls initial stepHandler eventHandler drawHandler = do
         drawHandlerWrapper (debugState, wrappedState) =
             case debugStateActive debugState of
                 True -> liftM (drawDebugState debugState . pictureToDrawing) $ drawHandler (state wrappedState)
-                False -> liftM pictureToDrawing $ wrappedDraw controls drawHandler wrappedState
+                False -> liftM pictureToDrawing $ wrappedDraw controls (drawHandler) wrappedState
         drawPicHandler (debugState, wrappedState) =
             drawHandler $ state wrappedState
     (sendEvent, getState) <-
@@ -1785,6 +1856,7 @@ runInspectIO controls initial stepHandler eventHandler drawHandler = do
             initialWrapper
             stepHandlerWrapper
             (\e w -> (eventHandlerWrapper e) w)
+            background
             drawHandlerWrapper
             (Right . TimePassing)
     let pauseEvent True = sendEvent $ Left DebugStart
@@ -1792,7 +1864,7 @@ runInspectIO controls initial stepHandler eventHandler drawHandler = do
         highlightSelectEvent True n = sendEvent $ Left (HighlightEvent n)
         highlightSelectEvent False n = sendEvent $ Left (SelectEvent n)
     onEvents canvas (sendEvent . Right)
-    inspect (drawPicHandler =<< getState) pauseEvent highlightSelectEvent
+    inspect background (drawPicHandler =<< getState) pauseEvent highlightSelectEvent
     -- hpacheco: send an initial resize event (as gloss does), to fix reruns in the web UI
     getSizeOfElement canvas >>= sendEvent . Right . Resize 
     waitForever
@@ -1898,8 +1970,8 @@ onEvents context rect handler =
         maybeEvent <- toEvent rect <$> Canvas.wait context
         forM_ maybeEvent handler
 
-run :: s -> (Double -> s -> IO s) -> (Event -> s -> IO s) -> (s -> IO Picture) -> IO ()
-run initial stepHandler eventHandler drawHandler =
+run :: s -> (Double -> s -> IO s) -> (Event -> s -> IO s) -> Color -> (s -> IO Picture) -> IO ()
+run initial stepHandler eventHandler background drawHandler =
     runBlankCanvas $ \context -> do
         let fullStepHandler dt = stepHandler dt <=< eventHandler (TimePassing dt)
         let cw = Canvas.width context
@@ -1912,13 +1984,13 @@ run initial stepHandler eventHandler drawHandler =
             tryPutMVar eventHappened ()
             return ()
         let go t0 lastFrame lastStateName needsTime = do
-                pic <- drawHandler =<< readMVar currentState
+                pic <- drawHandler background =<< readMVar currentState
                 picFrame <- makeStableName $! pic
                 when (picFrame /= lastFrame) $
                     runCanvasM context $ do
                         CM.withImage offscreenCanvas $
                             CM.saveRestore $ do
-                                setupScreenContext cw ch
+                                setupScreenContext background cw ch
                                 drawDrawing initialDS (pictureToDrawing pic)
                         CM.drawImage offscreenCanvas 0 0 cw ch
                 t1 <-
@@ -1953,23 +2025,23 @@ runInspect ::
     -> s
     -> (Double -> s -> s)
     -> (Event -> s -> s)
-    -> (s -> Picture) 
+    -> Color -> (s -> Picture) 
     -> IO ()
-runInspect controls initial stepHandler eventHandler drawHandler =
-    runInspectIO controls initial (\t -> return . stepHandler t) (\e -> return . eventHandler e) (return . drawHandler)
+runInspect controls initial stepHandler eventHandler background drawHandler =
+    runInspectIO controls initial (\t -> return . stepHandler t) (\e -> return . eventHandler e) (return . drawHandler background)
 
 runInspectIO :: 
        (Wrapped s -> [Control s])
     -> s
     -> (Double -> s -> IO s)
     -> (Event -> s -> IO s)
-    -> (s -> IO Picture) 
+    -> Color -> (s -> IO Picture) 
     -> IO ()
-runInspectIO controls initial stepHandler eventHandler drawHandler =
+runInspectIO controls initial stepHandler eventHandler background drawHandler =
     run (wrappedInitial initial)
         (wrappedStep stepHandler)
         (wrappedEvent controls stepHandler eventHandler)
-        (wrappedDraw controls drawHandler)
+        (wrappedDraw controls (drawHandler background))
 
 getDeployHash :: IO Text
 getDeployHash = error "game API unimplemented in stand-alone interface mode"
@@ -1980,7 +2052,7 @@ runGame ::
     -> (StdGen -> s)
     -> (Double -> s -> s)
     -> (Int -> Event -> s -> s)
-    -> (Int -> s -> Picture)
+    -> Color -> (Int -> s -> Picture)
     -> IO ()
 runGame = error "game API unimplemented in stand-alone interface mode"
 
@@ -1989,7 +2061,7 @@ runGame = error "game API unimplemented in stand-alone interface mode"
 --------------------------------------------------------------------------------
 -- Common code for game interface
 
-groupActivityOf numPlayers initial event draw = do
+groupActivityOf numPlayers initial event background draw = do
     dhash <- getDeployHash
     let token =
             SteplessToken
@@ -2005,19 +2077,20 @@ groupActivityOf numPlayers initial event draw = do
         (deRefStaticPtr initial)
         (const id)
         (deRefStaticPtr event)
+        background
         (deRefStaticPtr draw)
 
-unsafeGroupActivityOf numPlayers initial event draw =
-    unsafeCollaborationOf numPlayers initial (const id) event draw
+unsafeGroupActivityOf numPlayers initial event background draw =
+    unsafeCollaborationOf numPlayers initial (const id) event background draw
 
-unsafeCollaborationOf numPlayers initial step event draw = do
+unsafeCollaborationOf numPlayers initial step event background draw = do
     dhash <- getDeployHash
     let token = PartialToken dhash
-    runGame token numPlayers initial step event draw
+    runGame token numPlayers initial step event background draw
   where
     token = NoToken
 
-collaborationOf numPlayers initial step event draw = do
+collaborationOf numPlayers initial step event background draw = do
     dhash <- getDeployHash
     let token =
             FullToken
@@ -2034,6 +2107,7 @@ collaborationOf numPlayers initial step event draw = do
         (deRefStaticPtr initial)
         (deRefStaticPtr step)
         (deRefStaticPtr event)
+        background
         (deRefStaticPtr draw)
 
 --------------------------------------------------------------------------------
@@ -2450,7 +2524,7 @@ drawingControls w
       | zoomFactor w /= 1 || panCenter w /= SP 0 0 = [ResetViewButton (9, -3)]
       | otherwise = []
 
-drawingOf pic = runInspect drawingControls () (\_ _ -> ()) (\_ _ -> ()) (const pic)
+drawingOf background pic = runInspect drawingControls () (\_ _ -> ()) (\_ _ -> ()) background (const pic)
 
 animationControls :: Wrapped Double -> [Control Double]
 animationControls w
@@ -2478,9 +2552,9 @@ animationControls w
       | zoomFactor w /= 1 || panCenter w /= SP 0 0 = [ResetViewButton (9, -3)]
       | otherwise = []
 
-animationOf f = runInspect animationControls 0 (+) (\_ -> id) f
+animationOf background f = runInspect animationControls 0 (+) (\_ -> id) background f
 
-ioAnimationOf f = runInspectIO animationControls 0 (\x y -> return $ x+y) (\_ -> return) f
+ioAnimationOf background f = runInspectIO animationControls 0 (\x y -> return $ x+y) (\_ -> return) background f
 
 simulationControls :: Wrapped w -> [Control w]
 simulationControls w
@@ -2533,11 +2607,11 @@ statefulDebugControls w
       | playbackSpeed w == 0 = [PanningLayer]
       | otherwise = []
 
-simulationOf initial step draw =
-    runInspect simulationControls initial step (\_ -> id) draw
+simulationOf initial step background draw =
+    runInspect simulationControls initial step (\_ -> id) background draw
 
-ioSimulationOf initial step draw =
-    runInspectIO simulationControls initial step (\_ -> return) draw
+ioSimulationOf initial step background draw =
+    runInspectIO simulationControls initial step (\_ -> return) background draw
 
 prependIfChanged :: (a -> a) -> ([a],[a]) -> ([a],[a])
 prependIfChanged f (x:xs, ys)
@@ -2545,21 +2619,21 @@ prependIfChanged f (x:xs, ys)
     | otherwise = (x':x:xs, ys)
     where x' = f x
 
-debugSimulationOf initial simStep simDraw =
-    runInspect statefulDebugControls ([initial],[]) step (\_ r -> r) draw
+debugSimulationOf initial simStep background simDraw =
+    runInspect statefulDebugControls ([initial],[]) step (\_ r -> r) background draw
   where
     step dt = prependIfChanged (simStep dt)
     draw (x:_, _) = simDraw x
 
-debugInteractionOf initial baseStep baseEvent baseDraw = 
-  runInspect statefulDebugControls ([initial], []) step event draw 
+debugInteractionOf initial baseStep baseEvent background baseDraw = 
+  runInspect statefulDebugControls ([initial], []) step event background draw 
   where
     step dt = prependIfChanged (baseStep dt)
     event e = prependIfChanged (baseEvent e)
     draw (x:_, _) = baseDraw x
 
-debugActivityOf initial change picture =
-    debugInteractionOf initial (const id) change picture
+debugActivityOf initial change background picture =
+    debugInteractionOf initial (const id) change background picture
 
 trace msg x = unsafePerformIO $ do
     oldMode <- hGetBuffering stderr

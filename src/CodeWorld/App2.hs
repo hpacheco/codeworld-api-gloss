@@ -87,4 +87,4 @@ subapplication getter setter (App initial step event picture) f =
 
 applicationOf :: Application world -> IO ()
 applicationOf (App initial step event picture) =
-    interactionOf initial step (event 0) (picture 0)
+    interactionOf initial step (event 0) white (picture 0)

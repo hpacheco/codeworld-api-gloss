@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE StandaloneDeriving, DeriveGeneric #-}
 
 {-
   Copyright 2019 The CodeWorld Authors. All rights reserved.
@@ -25,6 +25,8 @@ import Data.Monoid ((<>))
 import Data.Text (Text, pack)
 import GHC.Generics (Generic)
 import GHC.Stack
+import GHC.Generics
+import GHCJS.DOM.HTMLImageElement
 
 type Point = (Double, Double)
 
@@ -148,9 +150,21 @@ data Picture
     | Pictures (Maybe SrcLoc) [Picture]
     | PictureAnd (Maybe SrcLoc) [Picture]
     | Blank (Maybe SrcLoc)
+    | Image (Maybe SrcLoc) Int Int Img -- width, height and the identifier of the html element holding the image
     deriving (Generic)
 
+instance NFData Img
+
+data Img = StringImg String
+         | HTMLImg HTMLImageElement
+  deriving (Eq,Generic)
+
 instance NFData Picture
+deriving instance Generic HTMLImageElement
+instance NFData HTMLImageElement
+
+instance Show Img where
+    show x = "<Img>"
 
 data TextStyle
     = Plain
@@ -329,6 +343,10 @@ rotated = Rotate (getDebugSrcLoc callStack)
 -- A picture made by drawing these pictures, ordered from top to bottom.
 pictures :: HasCallStack => [Picture] -> Picture
 pictures = Pictures (getDebugSrcLoc callStack)
+
+-- | An external image
+image :: HasCallStack => Int -> Int -> Img -> Picture
+image = Image (getDebugSrcLoc callStack)
 
 -- | Binary composition of pictures.
 (&) :: HasCallStack => Picture -> Picture -> Picture

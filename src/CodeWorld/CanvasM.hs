@@ -20,10 +20,16 @@
 
 module CodeWorld.CanvasM where
 
+import           Data.String
+import CodeWorld.Picture
+import GHCJS.DOM.HTMLImageElement
+import GHCJS.Marshal
+
 import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.Trans (MonadIO)
 import Data.Text (Text, pack)
+import qualified Data.Text as T
 
 #ifdef ghcjs_HOST_OS
 
@@ -57,6 +63,7 @@ class (Monad m, MonadIO m) => MonadCanvas m where
     builtinImage :: Text -> m (Maybe (Image m))
     withImage :: Image m -> m a -> m a
     drawImage :: Image m -> Int -> Int -> Int -> Int -> m ()
+    imgToCanvas :: Img -> m (Image m)
     globalCompositeOperation :: Text -> m ()
     lineWidth :: Double -> m ()
     strokeColor :: Int -> Int -> Int -> Double -> m ()
@@ -142,6 +149,20 @@ instance MonadCanvas CanvasM where
         unCanvasM m (w, h) ctx
     drawImage (Canvas.Canvas c) x y w h =
         CanvasM (const (Canvas.drawImage (Canvas.Image c) x y w h))
+    imgToCanvas (StringImg imgid) = do
+        mbdoc <- currentDocument
+        case mbdoc of
+            Nothing -> error $ "imgToCanvas doc"
+            Just doc -> do
+                mbel <- getElementById doc (fromString imgid :: JSString)
+                case mbel of
+                    Nothing -> error $ "imgToCanvas element " ++ show imgid
+                    Just el -> do
+                        val <- liftIO $ toJSVal el
+                        return $ Canvas.Canvas val
+    imgToCanvas (HTMLImg e) = do
+        val <- liftIO $ toJSVal e
+        return $ Canvas.Canvas val
     globalCompositeOperation op =
         CanvasM (const (js_globalCompositeOperation (textToJSString op)))
     lineWidth w = CanvasM (const (Canvas.lineWidth w))
@@ -247,6 +268,7 @@ instance MonadCanvas CanvasM where
             , fromIntegral y
             , fromIntegral w
             , fromIntegral h)
+    imgToCanvas _ = error $ "imgToCanvas"
     globalCompositeOperation op = liftCanvas $
         Canvas.globalCompositeOperation op
     lineWidth w = liftCanvas $ Canvas.lineWidth w

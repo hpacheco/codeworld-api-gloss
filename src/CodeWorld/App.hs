@@ -70,7 +70,7 @@ rules :: [Rule state] -> Rule state
 rules = Rules
 
 applicationOf :: world -> [Rule world] -> IO ()
-applicationOf w rules = interactionOf w step event picture
+applicationOf w rules = interactionOf w step event white picture
   where step dt   = foldl' (.) id [ f dt | f <- concatMap stepHandlers rules ]
         event ev  = foldl' (.) id [ f ev | f <- concatMap eventHandlers rules ]
         picture w = pictures [ pic w | pic <- concatMap pictureHandlers rules ]
@@ -89,7 +89,7 @@ applicationOf w rules = interactionOf w step event picture
 
 unsafeMultiApplicationOf :: Int -> (StdGen -> state) -> [Rule state] -> IO ()
 unsafeMultiApplicationOf n initial rules =
-    unsafeCollaborationOf n initial step event picture
+    unsafeCollaborationOf n initial step event white picture
   where step dt     = foldl' (.) id [ f dt | f <- concatMap stepHandlers rules ]
         event k ev  = foldl' (.) id [ f k ev | f <- concatMap eventHandlers rules ]
         picture k w = pictures [ pic k w | pic <- concatMap pictureHandlers rules ]

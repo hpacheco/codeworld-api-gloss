@@ -60,7 +60,7 @@ Library
                        random-shuffle       >= 0.0.4 && < 0.1,
                        cereal               >= 0.5.4 && < 0.6,
                        cereal-text          >= 0.1.0 && < 0.2,
-                       ghc-prim             >= 0.3.1 && < 0.6
+                       ghc-prim             >= 0.3.1 && < 0.6, filepath
 
   if impl(ghcjs)
     Js-sources:        jsbits/sim_fp.js

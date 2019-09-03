@@ -10,4 +10,4 @@ import Graphics.Gloss.Data.Display
 
 -- TODO: missing screen and background
 display :: Display -> Color -> Picture -> IO ()
-display display back p = CW.drawingOf (displayCWPicture display back p)
+display display back p = CW.drawingOf (colorToCW back) (displayCWPicture display p)

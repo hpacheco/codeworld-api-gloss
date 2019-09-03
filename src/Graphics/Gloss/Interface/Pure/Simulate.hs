@@ -10,7 +10,7 @@ import Graphics.Gloss.Data.Display
 
 -- TODO: missing screen and background
 simulate :: Display -> Color -> Int -> model -> (model -> Picture) -> (Float -> model -> model) -> IO ()
-simulate display back framerate state draw go = CW.simulationOf state goCW drawCW
+simulate display back framerate state draw go = CW.simulationOf state goCW (colorToCW back) drawCW
     where
     goCW t w = go (realToFrac t) w
-    drawCW = displayCWPicture display back . draw
+    drawCW = displayCWPicture display . draw

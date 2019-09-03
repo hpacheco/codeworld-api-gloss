@@ -3,7 +3,7 @@
 module Graphics.Gloss.Data.Picture where
 
 import qualified CodeWorld as CW
---import qualified CodeWorld.Picture as CW
+import qualified CodeWorld.Picture as CW
 
 import Graphics.Gloss.Data.Color
 import Graphics.Gloss.Data.Point
@@ -27,6 +27,7 @@ data Picture
     | Rotate Float Picture	
     | Scale Float Float Picture	
     | Pictures [Picture]	
+    | Image Int Int CW.Img
   deriving (Eq,Show)
 
 instance Semigroup Picture where
@@ -90,6 +91,7 @@ pictureToCW (Translate x y p) = CW.translated (coordToCW x) (coordToCW y) (pictu
 pictureToCW (Rotate r p) = CW.rotated (-angleToCW r) (pictureToCW p) -- gloss rotates clockwise
 pictureToCW (Scale x y p) = CW.scaled (coordToCW x) (coordToCW y) (pictureToCW p)
 pictureToCW (Pictures ps) = CW.pictures $ reverse $ map pictureToCW ps
+pictureToCW (Image w h dta) = CW.image w h dta
 
 propagateColor :: CW.Color -> Picture -> CW.Picture
 propagateColor c pic@(Blank {}) = CW.colored c (pictureToCW pic)
@@ -105,6 +107,7 @@ propagateColor c pic@(Translate x y p) = CW.translated (coordToCW x) (coordToCW 
 propagateColor c pic@(Rotate r p) = CW.rotated (-angleToCW r) $ propagateColor c p
 propagateColor c pic@(Scale x y p) = CW.scaled (coordToCW x) (coordToCW y) $ propagateColor c p
 propagateColor c pic@(Pictures ps) = CW.pictures $ map (propagateColor c) ps
+propagateColor c pic@(Image {}) = CW.colored c (pictureToCW pic)
 
 -- Other Shapes ---------------------------------------------------------------
 -- | A closed loop along a path.
@@ -188,3 +191,18 @@ rectangleSolid sizeX sizeY
 rectangleUpperSolid :: Float -> Float -> Picture
 rectangleUpperSolid sizeX sizeY
         = Polygon  $ rectangleUpperPath sizeX sizeY
+
+loadImage :: FilePath -> IO Picture
+loadImage f = do
+    CW.Image _ w h img <- CW.loadImage f
+    return $ Image w h img
+
+loadImageById :: String -> IO Picture
+loadImageById n = do
+    CW.Image _ w h img <- CW.loadImageById n
+    return $ Image w h img
+    
+loadSizedImageById :: Int -> Int -> String -> IO Picture
+loadSizedImageById w h n = do
+    CW.Image _ w h img <- CW.loadSizedImageById w h n
+    return $ Image w h img

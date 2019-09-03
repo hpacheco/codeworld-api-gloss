@@ -53,7 +53,7 @@ displayIO
         -> IO ()
 
 displayIO display backColor makePicture
- =     makePicture >>= \p -> CW.drawingOf (displayCWPicture display backColor p)
+ =     makePicture >>= \p -> CW.drawingOf (colorToCW backColor) (displayCWPicture display p)
  
 --displayFitScreenIO
 --        :: Display -> Display                -- ^ Display mode.

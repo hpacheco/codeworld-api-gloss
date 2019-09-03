@@ -7,6 +7,8 @@ import Graphics.Gloss.Data.Display
 import CodeWorld as CW
 import CodeWorld.Driver as CW
 
+import qualified Data.Text as T
+
 playAudioById = CW.playAudioById
 say = CW.say
 reportRuntimeMessage = CW.reportRuntimeMessage
@@ -29,3 +31,6 @@ getDisplay :: IO Display
 getDisplay = do
     (x,y) <- getScreenSize
     return $ Display x y
+    
+trace :: String -> a -> a
+trace str = CW.trace (T.pack str)

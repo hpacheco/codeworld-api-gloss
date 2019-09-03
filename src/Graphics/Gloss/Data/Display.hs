@@ -13,17 +13,21 @@ data Display = Display Int Int
 
 -- | Convert pictures with coordinates x in [-screenx/2,screenx/2], y in [-screeny/2,screeny/2] to codeworld pictures in the x,y in [-10,10] plane.
 fitCWPictureToScreen :: Display -> CW.Picture -> CW.Picture
-fitCWPictureToScreen (Display cx cy) p = CW.scaled (10 / cx2) (10 / cy2) p
+fitCWPictureToScreen (Display cx cy) p = CW.scaled (10 * factorx / cx2) (10 * factory / cy2) p
     where
-    cx2 = realToFrac cx / 2
-    cy2 = realToFrac cy / 2
+    rcx = realToFrac cx
+    rcy = realToFrac cy
+    cx2 = rcx / 2
+    cy2 = rcy / 2
+    factorx = max 1 (rcx / rcy)
+    factory = max 1 (rcy / rcx)
+    
 
-displayCWPicture :: Display -> Color -> Picture -> CW.Picture
-displayCWPicture screen@(Display cx cy) back p = fitCWPictureToScreen screen (pictureToCW $ Pictures [background,p])
+displayCWPicture :: Display -> Picture -> CW.Picture
+displayCWPicture screen@(Display cx cy) p = fitCWPictureToScreen screen (pictureToCW p)
     where
     cx2 = realToFrac cx / 2
     cy2 = realToFrac cy / 2
-    background = Color back $ Polygon [(-cx2,-cy2),(-cx2,cy2),(cx2,cy2),(cx2,-cy2)]
 
 -- fits a picture drawn for a display into a screen
 fitScreenPicture :: Display -> Display -> Picture -> Picture

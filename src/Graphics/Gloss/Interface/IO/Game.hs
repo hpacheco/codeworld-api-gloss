@@ -28,14 +28,14 @@ playIO  :: forall world
                                         --   It is passed the period of time (in seconds) needing to be advanced.
         -> IO ()
 
-playIO display back framerate start draw react step = CW.ioInteractionOf (display,start) stepCW reactCW drawCW
+playIO display back framerate start draw react step = CW.ioInteractionOf (display,start) stepCW reactCW (colorToCW back) drawCW
     where
     stepCW f (disp,w) = liftM (disp,) $ step (realToFrac f) w
     reactCW e (disp,w) = case eventFromCW disp e of
         Nothing -> return (disp,w)
         Just e@(EventResize (x,y)) -> liftM (Display x y,) $ react e w
         Just e -> liftM (disp,) $ react e w
-    drawCW (disp,w) = liftM (displayCWPicture disp back) (draw w)
+    drawCW (disp,w) = liftM (displayCWPicture disp) (draw w)
 
 --playFitScreenIO :: Display -> Display -> Color -> Int -> world -> (world -> IO Picture) -> (Event -> world -> IO world) -> (Float -> world -> IO world) -> IO ()
 --playFitScreenIO screen display back framerate start draw react step = CW.ioInteractionOf start stepCW reactCW drawCW
