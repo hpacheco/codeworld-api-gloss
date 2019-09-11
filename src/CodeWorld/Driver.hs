@@ -104,6 +104,7 @@ import GHCJS.Foreign
 import GHCJS.Foreign.Callback
 import GHCJS.Marshal
 import GHCJS.Marshal.Pure
+import           GHCJS.DOM.HTMLTextAreaElement
 import GHCJS.Types
 import qualified JavaScript.Array as Array
 import JavaScript.Object
@@ -148,6 +149,14 @@ foreign import javascript unsafe "addMessage($1,$2);"
 
 reportRuntimeMessage :: String -> IO ()
 reportRuntimeMessage str = addMessage ("log" :: JSString) (fromString str)
+
+getTextContent :: IO String
+getTextContent = do
+    doc <- orError "getTextContent currentDocument" currentDocument
+    textarea <- orError "getTextContent getElementById" $ getElementById doc ("text" :: JSString)
+    mbv <- fromJSVal =<< toJSVal textarea
+    content <- orError "getTextContent getValue" $ fmap join $ mapM getValue mbv
+    return content
 
 say :: Text -> IO ()
 say str = do
@@ -391,10 +400,12 @@ pictureToDrawing (ThickCurve _ pts w) = Shape $ pathDrawer pts w False True
 pictureToDrawing (Sector _ b e r) = Shape $ sectorDrawer b e r
 pictureToDrawing (Arc _ b e r) = Shape $ arcDrawer b e r 0
 pictureToDrawing (ThickArc _ b e r w) = Shape $ arcDrawer b e r w
-pictureToDrawing (Lettering _ txt) = Shape $ textDrawer Plain Serif txt
+pictureToDrawing (Lettering _ txt) = Shape $ letteringDrawer Plain Serif txt
+pictureToDrawing (Text _ txt) = Shape $ textDrawer Plain Serif txt
 pictureToDrawing (Image _ w h dta) = Shape $ imageDrawer w h dta
 pictureToDrawing (Blank _) = Drawings $ []
-pictureToDrawing (StyledLettering _ sty fnt txt) = Shape $ textDrawer sty fnt txt
+pictureToDrawing (StyledLettering _ sty fnt txt) = Shape $ letteringDrawer sty fnt txt
+pictureToDrawing (StyledText _ sty fnt txt) = Shape $ textDrawer sty fnt txt
 pictureToDrawing (Logo _) = Shape $ logoDrawer
 pictureToDrawing (CoordinatePlane _) = Shape $ coordinatePlaneDrawer
 pictureToDrawing (Color _ col p) =
@@ -445,6 +456,7 @@ pathDrawer :: MonadCanvas m => [Point] -> Double -> Bool -> Bool -> Drawer m
 sectorDrawer :: MonadCanvas m => Double -> Double -> Double -> Drawer m
 arcDrawer :: MonadCanvas m => Double -> Double -> Double -> Double -> Drawer m
 textDrawer :: MonadCanvas m => TextStyle -> Font -> Text -> Drawer m
+letteringDrawer :: MonadCanvas m => TextStyle -> Font -> Text -> Drawer m
 imageDrawer :: MonadCanvas m => Int -> Int -> Img -> Drawer m
 logoDrawer :: MonadCanvas m => Drawer m
 coordinatePlaneDrawer :: MonadCanvas m => Drawer m
@@ -563,6 +575,7 @@ arcDrawer b e r w ds =
              CM.isPointInStroke (0, 0)
     }
 
+-- gloss compatible
 textDrawer sty fnt txt ds =
     DrawMethods
     { drawShape = do
@@ -591,6 +604,37 @@ textDrawer sty fnt txt ds =
                  CM.rect ((-0.5) * width) ((0.5) * height) width height
              CM.isPointInPath (0, 0)
     }
+
+-- original codeworld
+letteringDrawer sty fnt txt ds =
+    DrawMethods
+    { drawShape =
+          withDS ds $ do
+              CM.scale 1 (-1)
+              applyColor ds
+              CM.font (fontString sty fnt)
+              CM.fillText txt (0, 0)
+    , shapeContains =
+          do CM.font (fontString sty fnt)
+             width <- CM.measureText txt
+             let height = 25 -- constant, defined in fontString
+             withDS ds $
+                 CM.rect ((-0.5) * width) ((-0.5) * height) width height
+             CM.isPointInPath (0, 0)
+    }
+  where
+    fontString :: TextStyle -> Font -> Text
+    fontString style font = stylePrefix style <> "25px " <> fontName font
+      where
+        stylePrefix Plain = ""
+        stylePrefix Bold = "bold "
+        stylePrefix Italic = "italic "
+        fontName SansSerif = "sans-serif"
+        fontName Serif = "serif"
+        fontName Monospace = "monospace"
+        fontName Handwriting = "cursive"
+        fontName Fancy = "fantasy"
+        fontName (NamedFont txt) = "\"" <> T.filter (/= '"') txt <> "\""
 
 imageDrawer w h dta ds = 
     DrawMethods
@@ -1866,7 +1910,7 @@ runInspectIO controls initial stepHandler eventHandler background drawHandler = 
     onEvents canvas (sendEvent . Right)
     inspect background (drawPicHandler =<< getState) pauseEvent highlightSelectEvent
     -- hpacheco: send an initial resize event (as gloss does), to fix reruns in the web UI
-    getSizeOfElement canvas >>= sendEvent . Right . Resize 
+    getSizeOfElement canvas >>= sendEvent . Right . Resize
     waitForever
 
 -- Given a drawing, highlight the first node and select second node. Both recolor

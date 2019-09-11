@@ -128,6 +128,11 @@ data Picture
            !Text
     | Lettering (Maybe SrcLoc)
            !Text
+    | StyledText (Maybe SrcLoc)
+           !TextStyle
+           !Font
+           !Text
+    | Text (Maybe SrcLoc) !Text
     | Color (Maybe SrcLoc)
             !Color
             !Picture
@@ -293,26 +298,19 @@ sector = Sector (getDebugSrcLoc callStack)
 
 -- | A rendering of text characters.
 text :: HasCallStack => Text -> Picture
-text = Lettering (getDebugSrcLoc callStack)
-
-{-# WARNING text ["Please used lettering instead of text.",
-                  "text may be removed July 2019."] #-}
+text = Text (getDebugSrcLoc callStack)
 
 -- | A rendering of text characters.
 lettering :: HasCallStack => Text -> Picture
 lettering = Lettering (getDebugSrcLoc callStack)
 
--- | A rendering of text characters, with a specific choice of font and style.
-styledText :: HasCallStack => TextStyle -> Font -> Text -> Picture
-styledText = StyledLettering (getDebugSrcLoc callStack)
-
-{-# WARNING styledText ["Please used styledLettering instead of styledText.",
-                        "styledText may be removed July 2019."] #-}
-
 -- | A rendering of text characters onto a Picture, with a specific
 -- choice of font and style.
 styledLettering :: HasCallStack => TextStyle -> Font -> Text -> Picture
 styledLettering = StyledLettering (getDebugSrcLoc callStack)
+
+styledText :: HasCallStack => TextStyle -> Font -> Text -> Picture
+styledText = StyledText (getDebugSrcLoc callStack)
 
 -- | A picture drawn entirely in this color.
 colored :: HasCallStack => Color -> Picture -> Picture

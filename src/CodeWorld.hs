@@ -143,7 +143,7 @@ module CodeWorld (
     -- * Debugging
     , trace
     , say, playAudioById
-    , reportRuntimeMessage
+    , reportRuntimeMessage, getTextContent
     , loadImage, loadImageById, loadSizedImageById,
     ) where
 

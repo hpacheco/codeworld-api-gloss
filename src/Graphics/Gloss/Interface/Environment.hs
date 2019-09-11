@@ -8,10 +8,12 @@ import CodeWorld as CW
 import CodeWorld.Driver as CW
 
 import qualified Data.Text as T
+import Data.String
 
 playAudioById = CW.playAudioById
 say = CW.say
 reportRuntimeMessage = CW.reportRuntimeMessage
+addMessage typ msg = CW.addMessage (fromString typ) (fromString msg)
 
 #if defined(ghcjs_HOST_OS)
 
@@ -34,3 +36,6 @@ getDisplay = do
     
 trace :: String -> a -> a
 trace str = CW.trace (T.pack str)
+
+getTextContent :: IO String
+getTextContent = CW.getTextContent
