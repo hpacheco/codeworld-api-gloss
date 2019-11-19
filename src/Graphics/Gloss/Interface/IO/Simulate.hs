@@ -8,11 +8,13 @@
 --   on the current `ViewPort`.
 module Graphics.Gloss.Interface.IO.Simulate
         ( module Graphics.Gloss.Data.Display
+        , module Graphics.Gloss.Data.ViewPort
         , module Graphics.Gloss.Data.Picture
         , module Graphics.Gloss.Data.Color
         , simulateIO)
 where
 import Graphics.Gloss.Data.Display
+import Graphics.Gloss.Data.ViewPort
 import Graphics.Gloss.Data.Picture
 import Graphics.Gloss.Data.Color
 import qualified CodeWorld as CW
@@ -25,7 +27,7 @@ simulateIO :: forall model
         -> Int                   -- ^ Framerate
         -> model                 -- ^ The initial model.
         -> (model -> IO Picture) -- ^ A function to convert the model to a picture.
-        -> (Float -> model -> IO model) 
+        -> (ViewPort -> Float -> model -> IO model) 
                                  -- ^ A function to step the model one iteration. It is passed the 
                                  --     current viewport and the amount of time for this simulation
                                  --     step (in seconds).
@@ -33,5 +35,5 @@ simulateIO :: forall model
 
 simulateIO display back framerate state draw go = CW.ioSimulationOf state goCW (colorToCW back) drawCW
     where
-    goCW t w = go (realToFrac t) w
+    goCW t w = go ViewPort (realToFrac t) w
     drawCW = liftM (displayCWPicture display) . draw

@@ -29,6 +29,7 @@ Library
                        Graphics.Gloss.Data.Event,
                        Graphics.Gloss.Data.Vector,
                        Graphics.Gloss.Data.Display,
+                       Graphics.Gloss.Data.ViewPort,
                        Graphics.Gloss.Interface.Pure.Display,
                        Graphics.Gloss.Interface.Pure.Animate,
                        Graphics.Gloss.Interface.Pure.Simulate,
