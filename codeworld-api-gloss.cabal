@@ -40,7 +40,8 @@ Library
                        Graphics.Gloss.Interface.IO.Game,
                        Graphics.Gloss.Interface.Environment,
                        Graphics.Gloss.Geometry.Angle,
-                       Graphics.Gloss.Geometry.Line
+                       Graphics.Gloss.Geometry.Line,
+                       Graphics.Gloss.Juicy
   Other-modules:       CodeWorld,
                        CodeWorld.App,
                        CodeWorld.App2,
@@ -61,7 +62,10 @@ Library
                        random-shuffle       >= 0.0.4 && < 0.1,
                        cereal               >= 0.5.4 && < 0.6,
                        cereal-text          >= 0.1.0 && < 0.2,
-                       ghc-prim             >= 0.3.1 && < 0.6, filepath
+                       ghc-prim             >= 0.3.1 && < 0.6,
+                       filepath,
+                       vector,
+                       JuicyPixels
 
   if impl(ghcjs)
     Js-sources:        jsbits/sim_fp.js

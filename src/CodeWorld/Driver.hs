@@ -1061,6 +1061,12 @@ foreign import javascript unsafe "$1.getContext('2d', { alpha: false })"
 foreign import javascript unsafe "showCanvas()"
     showCanvas :: IO ()
 
+getCWContext :: IO Canvas.Context
+getCWContext = do
+    Just doc <- currentDocument
+    Just canvas <- getElementById doc ("screen" :: JSString)
+    getCodeWorldContext (canvasFromElement canvas)
+
 canvasFromElement :: Element -> Canvas.Canvas
 canvasFromElement = Canvas.Canvas . unElement
 

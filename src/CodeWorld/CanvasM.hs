@@ -4,6 +4,9 @@
 {-# LANGUAGE JavaScriptFFI #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 
 {-
   Copyright 2019 The CodeWorld Authors. All rights reserved.
@@ -41,6 +44,20 @@ import GHCJS.Marshal.Pure
 import GHCJS.Types
 import qualified JavaScript.Web.Canvas as Canvas
 import qualified JavaScript.Web.Canvas.Internal as Canvas
+
+import JavaScript.Web.Canvas.ImageData as ImageData
+import JavaScript.TypedArray
+import JavaScript.TypedArray.Internal
+import GHC.Word
+import GHC.Types
+import GHC.Exts
+
+--import qualified GHCJS.DOM.CanvasRenderingContext2D as ImageData
+--import qualified GHCJS.DOM.ImageData as ImageData
+--import GHCJS.DOM.Types (Uint8ClampedArray(..))
+
+import qualified Data.Vector.Generic as V
+import qualified Codec.Picture.Types as Juicy
 
 #else
 
@@ -149,20 +166,7 @@ instance MonadCanvas CanvasM where
         unCanvasM m (w, h) ctx
     drawImage (Canvas.Canvas c) x y w h =
         CanvasM (const (Canvas.drawImage (Canvas.Image c) x y w h))
-    imgToCanvas (StringImg imgid) = do
-        mbdoc <- currentDocument
-        case mbdoc of
-            Nothing -> error $ "imgToCanvas doc"
-            Just doc -> do
-                mbel <- getElementById doc (fromString imgid :: JSString)
-                case mbel of
-                    Nothing -> error $ "imgToCanvas element " ++ show imgid
-                    Just el -> do
-                        val <- liftIO $ toJSVal el
-                        return $ Canvas.Canvas val
-    imgToCanvas (HTMLImg e) = do
-        val <- liftIO $ toJSVal e
-        return $ Canvas.Canvas val
+    imgToCanvas = liftIO . imgToCanvas'
     globalCompositeOperation op =
         CanvasM (const (js_globalCompositeOperation (textToJSString op)))
     lineWidth w = CanvasM (const (Canvas.lineWidth w))
@@ -192,6 +196,95 @@ instance MonadCanvas CanvasM where
     isPointInStroke (x, y) = CanvasM (const (js_isPointInStroke x y))
     getScreenWidth = CanvasM $ \(w, _) _ -> return w
     getScreenHeight = CanvasM $ \(_, h) _ -> return h
+
+imgToCanvas' :: Img -> IO Canvas.Canvas
+imgToCanvas' (StringImg imgid) = do
+    mbdoc <- currentDocument
+    case mbdoc of
+        Nothing -> error $ "imgToCanvas doc"
+        Just doc -> do
+            mbel <- getElementById doc (fromString imgid :: JSString)
+            case mbel of
+                Nothing -> error $ "imgToCanvas element " ++ show imgid
+                Just el -> do
+                    val <- toJSVal el
+                    return $ Canvas.Canvas val
+imgToCanvas' (HTMLImg e) = do
+    val <- toJSVal e
+    return $ Canvas.Canvas val
+imgToCanvas' (CanvasImg c) = return c
+
+--runCanvasIO :: (Int,Int) -> CanvasM a -> IO a
+--runCanvasIO (w,h) m = do
+--    ctx <- getCWContext
+--    runCanvasM (realToFrac w,realToFrac h) ctx m
+
+img2Canvas :: Int -> Int -> Img -> IO Canvas.Canvas
+img2Canvas w h (CanvasImg c) = return c
+img2Canvas w h img = do
+    cimg <- imgToCanvas' img
+    canvas <- Canvas.create w h
+    ctx <- Canvas.getContext canvas
+    runCanvasM (realToFrac w,realToFrac h) ctx $ drawImage cimg 0 0 w h
+    return canvas
+
+getImageData :: Canvas.Context -> Int -> Int -> Int -> Int -> IO ImageData
+getImageData c l t w h = js_getImageData c l t w h
+{-# INLINE getImageData #-}
+
+foreign import javascript unsafe "$1.getImageData($2,$3,$4,$5)"
+  js_getImageData :: Canvas.Context -> Int -> Int -> Int -> Int -> IO ImageData
+  
+putImageData :: Canvas.Context -> ImageData -> Int -> Int -> IO ImageData
+putImageData c idta w h = js_putImageData c idta w h
+{-# INLINE putImageData #-}
+
+foreign import javascript unsafe "$1.putImageData($2,$3,$4)"
+  js_putImageData :: Canvas.Context -> ImageData -> Int -> Int -> IO ImageData
+
+createImageData :: Canvas.Context -> Int -> Int -> IO ImageData
+createImageData c w h = js_createImageData c w h
+{-# INLINE createImageData #-}
+
+foreign import javascript unsafe "$1.createImageData($2,$3)"
+  js_createImageData :: Canvas.Context -> Int -> Int -> IO ImageData
+
+toJuicyImage :: Image CanvasM -> IO (Juicy.Image Juicy.PixelRGBA8)
+toJuicyImage img = do
+    ctx <- Canvas.getContext img
+    w <- Canvas.width img
+    h <- Canvas.height img
+    imgdata <- getImageData ctx 0 0 w h
+    let dta = ImageData.getData imgdata
+    let sz = w*h*4
+    let go i = if i == sz
+            then return Nothing
+            else do
+                y <- unsafeIndex i dta
+                return $ Just (y,i+1)
+    vdta <- V.unfoldrM go 0
+    return $ Juicy.Image w h vdta
+
+fromJuicyImage :: Juicy.Image Juicy.PixelRGBA8 -> IO (Image CanvasM)
+fromJuicyImage (Juicy.Image w h dta) = do
+    c <- Canvas.create w h
+    ctx <- Canvas.getContext c
+    cidta <- createImageData ctx w h
+    let cdta = ImageData.getData cidta
+    V.imapM_ (\i px -> unsafeSetIndex i px cdta) dta
+    putImageData ctx cidta 0 0
+    return c
+
+instance TypedArray Uint8ClampedArray where
+  index i a                   = IO (indexW8 i a)
+  unsafeIndex i a             = IO (unsafeIndexW8 i a)
+  setIndex i (W8# x) a        = IO (js_setIndexW i x a)
+  unsafeSetIndex i (W8# x) a  = IO (js_unsafeSetIndexW i x a)
+  indexOf s (W8# x) a         = IO (js_indexOfW s x a)
+  lastIndexOf s (W8# x) a     = IO (js_lastIndexOfW s x a)
+  create l                    = IO (js_createUint8ClampedArray l)
+  fromArray a                 = uint8ClampedArrayFrom a
+  fromArrayBuffer b           = undefined
 
 #else
 

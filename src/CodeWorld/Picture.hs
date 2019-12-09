@@ -28,6 +28,9 @@ import GHC.Stack
 import GHC.Generics
 import GHCJS.DOM.HTMLImageElement
 
+import qualified JavaScript.Web.Canvas as Canvas
+import qualified JavaScript.Web.Canvas.Internal as Canvas
+
 type Point = (Double, Double)
 
 translatedPoint :: Double -> Double -> Point -> Point
@@ -162,9 +165,14 @@ instance NFData Img
 
 data Img = StringImg String
          | HTMLImg HTMLImageElement
+         | CanvasImg Canvas.Canvas
   deriving (Eq,Generic)
 
 instance NFData Picture
+instance Eq Canvas.Canvas where
+    x == y = False
+instance NFData Canvas.Canvas where
+    rnf x = seq x ()
 deriving instance Generic HTMLImageElement
 instance NFData HTMLImageElement
 
