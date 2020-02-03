@@ -141,7 +141,7 @@ module CodeWorld (
     -- * Events
     , Event(..)
     -- * Debugging
-    , trace
+    , trace,traceIO
     , say, playAudioById
     , reportRuntimeMessage, getTextContent
     , loadImage, loadImageById, loadSizedImageById,

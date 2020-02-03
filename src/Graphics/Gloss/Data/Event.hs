@@ -1,4 +1,4 @@
-{-# LANGUAGE ViewPatterns, Trustworthy #-}
+{-# LANGUAGE ViewPatterns, Trustworthy, ScopedTypeVariables #-}
 
 module Graphics.Gloss.Data.Event where
 
@@ -26,7 +26,6 @@ data Modifiers
 
 noModifiers = Modifiers Up Up Up
 
---TODO: ignores mouse buttons
 eventToCW :: Display -> Event -> Maybe CW.Event
 eventToCW display (EventKey (Char c) toggle _ pos) = Just $ stringKeyToCW [toUpper c] toggle
 eventToCW display (EventKey (SpecialKey k) toggle _ pos) = Just $ specialKeyToCW k toggle
@@ -36,7 +35,6 @@ eventToCW display (EventMotion p) = Just $ CW.PointerMovement (pointToCWWithDisp
 eventToCW display (EventResize (x,y)) = Just $ CW.Resize (realToFrac x,realToFrac y)
 eventToCW display e = error $ "eventToCW: " ++ show e
 
---TODO: ignores mouse buttons
 eventFromCW :: Display -> CW.Event -> Maybe Event
 eventFromCW display (CW.KeyPress k) = Just $ stringKeyFromCW (Text.unpack k) Down
 eventFromCW display (CW.KeyRelease k) = Just $ stringKeyFromCW (Text.unpack k) Up
@@ -292,16 +290,18 @@ pointToCWWithDisplay (Display screenx screeny) (glossx,glossy) = (realToFrac cwx
     where
     screenx2 = realToFrac screenx / 2
     screeny2 = realToFrac screeny / 2
-    cwx = 10 * glossx / screenx2
-    cwy = 10 * glossy / screeny2
+    (cwMaxX,cwMaxY) = if screenx2 < screeny2 then (10,screeny2*10/screenx2) else (screenx2*10/screeny2,10)
+    cwx = cwMaxX * glossx / screenx2
+    cwy = cwMaxY * glossy / screeny2
 
 pointFromCWWithDisplay :: Display -> CW.Point -> Point
 pointFromCWWithDisplay (Display screenx screeny) (cwx,cwy) = (realToFrac glossx,realToFrac glossy)
     where
     screenx2 = realToFrac screenx / 2
     screeny2 = realToFrac screeny / 2
-    glossx = cwx * screenx2 / 10
-    glossy = cwy * screeny2 / 10
+    (cwMaxX,cwMaxY) = if screenx2 < screeny2 then (10,screeny2*10/screenx2) else (screenx2*10/screeny2,10)
+    glossx = cwx * screenx2 / cwMaxX
+    glossy = cwy * screeny2 / cwMaxY
 
 
 fitScreenPoint :: Display -> Display -> Point -> Maybe Point
@@ -319,6 +319,7 @@ fitScreenPoint (Display sx sy) (Display cx cy) (ix,iy) = if inDisplay then Just 
 fitScreenEvent :: Display -> Display -> Event -> Maybe Event
 fitScreenEvent screen display (EventKey key toggle mods pos) = fmap (EventKey key toggle mods) $ fitScreenPoint screen display pos
 fitScreenEvent screen display (EventMotion pos) = fmap (EventMotion) $ fitScreenPoint screen display pos
+fitScreenEvent screen display (EventResize sz) = Just (EventResize sz)
 
 
 

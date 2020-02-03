@@ -576,13 +576,22 @@ arcDrawer b e r w ds =
     }
 
 -- gloss compatible
+textWidth :: String -> IO Float
+textWidth str = do
+    ctx <- getCWContext
+    runCanvasM (500,500) ctx $ do
+        CM.font (fontString Plain Serif)
+        liftM realToFrac $ CM.measureText (T.pack str)
+
+-- gloss compatible
 textDrawer sty fnt txt ds =
     DrawMethods
     { drawShape = do
           (screenx,screeny) <- liftIO $ getSizeOf "screen"
           let screenx2 = screenx / 2
           let screeny2 = screeny / 2
-          let textds = scaleDS (screenx2 / 10) (screeny2 / 10) ds
+          let (cwMaxX,cwMaxY) = if screenx2 < screeny2 then (10,screeny2*10/screenx2) else (screenx2*10/screeny2,10)
+          let textds = scaleDS (screenx2 / cwMaxX) (screeny2 / cwMaxY) ds
           
           withDS textds $ do
               CM.scale 1 (-1)
@@ -595,7 +604,8 @@ textDrawer sty fnt txt ds =
              (screenx,screeny) <- liftIO $ getSizeOf "screen"
              let screenx2 = screenx / 2
              let screeny2 = screeny / 2
-             let textds = scaleDS (screenx2 / 10) (screeny2 / 10) ds
+             let (cwMaxX,cwMaxY) = if screenx2 < screeny2 then (10,screeny2*10/screenx2) else (screenx2*10/screeny2,10)
+             let textds = scaleDS (screenx2 / cwMaxX) (screeny2 / cwMaxY) ds
              
              CM.font (fontString sty fnt)
              width <- CM.measureText txt
@@ -1393,21 +1403,16 @@ onEvents canvas handler = do
             liftIO $ handler (KeyPress keyName)
             preventDefault
             stopPropagation
-        key <- getKey =<< event
-        when (T.length key == 1) $ do
-            liftIO $ handler (KeyPress key)
-            preventDefault
-            stopPropagation
+        --key <- getKey =<< event
+        --when (T.length key == 1) $ do
+        --    liftIO $ handler (KeyPress key)
+        --    preventDefault
+        --    stopPropagation
     on window keyUp $ do
         code <- getKeyCode =<< event
         let keyName = keyCodeToText code
         when (keyName /= "") $ do
             liftIO $ handler (KeyRelease keyName)
-            preventDefault
-            stopPropagation
-        key <- getKey =<< event
-        when (T.length key == 1) $ do
-            liftIO $ handler (KeyRelease key)
             preventDefault
             stopPropagation
     on window mouseDown $ do
@@ -2692,3 +2697,11 @@ trace msg x = unsafePerformIO $ do
     hFlush stderr
     hSetBuffering stderr oldMode
     return x
+
+traceIO msg = do
+    oldMode <- hGetBuffering stderr
+    hSetBuffering stderr (BlockBuffering Nothing)
+    hPutStrLn stderr (T.unpack msg)
+    hFlush stderr
+    hSetBuffering stderr oldMode
+    return ()

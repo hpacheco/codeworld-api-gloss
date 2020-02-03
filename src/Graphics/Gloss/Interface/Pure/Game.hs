@@ -13,20 +13,22 @@ play :: Display -> Color -> Int -> world -> (world -> Picture) -> (Event -> worl
 play display back framerate start draw react step = CW.interactionOf (display,start) stepCW reactCW (colorToCW back) drawCW
     where
     stepCW f (disp,w) = (disp,step (realToFrac f) w)
-    reactCW e (disp,w) = case eventFromCW disp e of
+    reactCW e (disp,w) = 
+        case eventFromCW disp e of
+            Nothing -> (disp,w)
+            Just e@(EventResize (x,y)) -> (Display x y,react e w)
+            Just e -> (disp,react e w)
+    drawCW (disp,w) = displayCWPicture disp (draw w)
+
+playFitScreen :: Display -> Display -> Color -> Int -> world -> (world -> Picture) -> (Event -> world -> world) -> (Float -> world -> world) -> IO ()
+playFitScreen screen display back framerate start draw react step = CW.interactionOf (screen,start) stepCW reactCW (colorToCW back) drawCW
+    where
+    stepCW f (disp,w) = (disp,step (realToFrac f) w)
+    reactCW e (disp,w) = case (eventFromCW disp e >>= fitScreenEvent disp display) of
         Nothing -> (disp,w)
         Just e@(EventResize (x,y)) -> (Display x y,react e w)
         Just e -> (disp,react e w)
-    drawCW (disp,w) = displayCWPicture disp (draw w)
-
---playFitScreen :: Display -> Display -> Color -> Int -> world -> (world -> Picture) -> (Event -> world -> world) -> (Float -> world -> world) -> IO ()
---playFitScreen screen display back framerate start draw react step = CW.interactionOf start stepCW reactCW drawCW
---    where
---    stepCW f w = step (realToFrac f) w
---    reactCW e w = case fitScreenEvent screen display (eventFromCW screen e) of
---        Nothing -> w
---        Just e' -> react e' w
---    drawCW w = displayCWPicture screen back (fitScreenPicture screen display $ draw w)
+    drawCW (disp,w) = displayCWPicture disp (fitScreenPicture disp display $ draw w)
 
 
 

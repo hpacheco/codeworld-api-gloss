@@ -39,3 +39,6 @@ trace str = CW.trace (T.pack str)
 
 getTextContent :: IO String
 getTextContent = CW.getTextContent
+
+textWidth :: String -> IO Float
+textWidth = CW.textWidth
