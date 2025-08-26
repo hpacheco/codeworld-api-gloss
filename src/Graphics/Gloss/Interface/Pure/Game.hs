@@ -1,6 +1,13 @@
 {-# LANGUAGE TupleSections, Trustworthy #-}
 
-module Graphics.Gloss.Interface.Pure.Game where
+module Graphics.Gloss.Interface.Pure.Game
+    ( module Graphics.Gloss.Interface.Pure.Game
+    , module Graphics.Gloss.Data.Picture
+    , module Graphics.Gloss.Data.Color
+    , module Graphics.Gloss.Data.Display
+    , module Graphics.Gloss.Data.Event
+
+) where
 
 import qualified CodeWorld as CW
 
