@@ -5,8 +5,8 @@ module Graphics.Gloss.Interface.Pure.Game
     , module Graphics.Gloss.Data.Picture
     , module Graphics.Gloss.Data.Color
     , play,playFitScreen
-    , Event(..), Key(..), SpecialKey(..), MouseButton(..), KeyState(..))
-) where
+    , Event(..), Key(..), SpecialKey(..), MouseButton(..), KeyState(..)
+    ) where
 
 import qualified CodeWorld as CW
 
