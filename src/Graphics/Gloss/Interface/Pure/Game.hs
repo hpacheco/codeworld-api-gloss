@@ -1,12 +1,11 @@
 {-# LANGUAGE TupleSections, Trustworthy #-}
 
 module Graphics.Gloss.Interface.Pure.Game
-    ( module Graphics.Gloss.Interface.Pure.Game
+    ( module Graphics.Gloss.Data.Display
     , module Graphics.Gloss.Data.Picture
     , module Graphics.Gloss.Data.Color
-    , module Graphics.Gloss.Data.Display
-    , module Graphics.Gloss.Data.Event
-
+    , play,playFitScreen
+    , Event(..), Key(..), SpecialKey(..), MouseButton(..), KeyState(..))
 ) where
 
 import qualified CodeWorld as CW
