@@ -172,6 +172,21 @@ playAudioById elid = do
     hel <- CodeWorld.Driver.toHTMLMediaElement el
     HTML.play hel
 
+playAudioByIdWithLoop :: String -> Bool -> IO ()
+playAudioByIdWithLoop elid onLoop = do
+    doc <- orError ("playAudioById document " ++ show elid) currentDocument
+    el <- orError ("playAudioById element " ++ show elid) $ getElementById doc (fromString elid :: JSString)
+    hel <- CodeWorld.Driver.toHTMLMediaElement el
+    HTML.play hel
+    HTML.setLoop elid onLoop
+
+pauseAudioById :: String -> IO ()
+pauseAudioById elid = do
+    doc <- orError ("playAudioById document " ++ show elid) currentDocument
+    el <- orError ("playAudioById element " ++ show elid) $ getElementById doc (fromString elid :: JSString)
+    hel <- CodeWorld.Driver.toHTMLMediaElement el
+    HTML.pause hel
+
 --------------------------------------------------------------------------------
 -- The common interface, provided by both implementations below.
 -- | Draws a 'Picture'.  This is the simplest CodeWorld entry point.
