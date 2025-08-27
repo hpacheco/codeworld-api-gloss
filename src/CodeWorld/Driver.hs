@@ -178,7 +178,7 @@ playAudioByIdWithLoop elid onLoop = do
     el <- orError ("playAudioById element " ++ show elid) $ getElementById doc (fromString elid :: JSString)
     hel <- CodeWorld.Driver.toHTMLMediaElement el
     HTML.play hel
-    HTML.setLoop elid onLoop
+    HTML.setLoop hel onLoop
 
 pauseAudioById :: String -> IO ()
 pauseAudioById elid = do
