@@ -142,7 +142,7 @@ module CodeWorld (
     , Event(..)
     -- * Debugging
     , trace,traceIO
-    , say, playAudioById
+    , say, playAudioById, playAudioByIdWithLoop, pauseAudioById
     , reportRuntimeMessage, getTextContent
     , loadImage, loadImageById, loadSizedImageById,
     ) where
