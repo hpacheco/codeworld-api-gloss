@@ -38,7 +38,7 @@ data Rectangle = Rectangle	{ rectPos :: (Int, Int), rectSize :: (Int, Int)	}
 data RowOrder = TopToBottom	| BottomToTop
     deriving (Eq,Ord,Show,Enum,Bounded)
 
-bitmapSection :: RowORder -> Rectangle -> DynamicImage -> IO (Maybe Picture)
+bitmapSection :: RowOrder -> Rectangle -> DynamicImage -> IO (Maybe Picture)
 bitmapSection order r img = do
     Just pic <- fromDynamicImage $ cropDynamicImage order r
     return pic
