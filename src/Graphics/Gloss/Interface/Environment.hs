@@ -11,6 +11,8 @@ import qualified Data.Text as T
 import Data.String
 
 playAudioById = CW.playAudioById
+playAudioByIdWithLoop = CW.playAudioByIdWithLoop
+pauseAudioById = CW.pauseAudioById
 say = CW.say
 reportRuntimeMessage = CW.reportRuntimeMessage
 addMessage typ msg = CW.addMessage (fromString typ) (fromString msg)
